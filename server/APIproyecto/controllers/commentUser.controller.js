@@ -1,211 +1,215 @@
 const controller = {};
 const commentUser = require("../models/commentUser.model");
-const httpError = require("http-errors");
-const User = require('../models/account.model');
-const Notification=require('../models/notification.model')
+const User = require("../models/account.model");
+const Notification = require("../models/notification.model");
+const moment = require("moment-timezone");
+const { sendJsonResponse, parseRequestBody } = require("../utils/http.helpers");
 
-const moment = require('moment-timezone');
-
-
-
-controller.postComment = async (req, res, next) => {
+// Agrega un comentario o respuesta
+controller.postComment = async (req, res) => {
   try {
-      const userId = req.user._id;
-      const { id: movieId } = req.params; // Usar el parámetro de ruta
-      const { commentText, parentId } = req.body;
+    // Extraemos los datos necesarios del cuerpo y la URL
+    const { commentText, parentId } = await parseRequestBody(req); // Parseamos el cuerpo de la solicitud
+    const movieId = req.params.id; // Obtenemos el `id` de la película desde req.params
+    const userId = req.user._id; // Obtenemos el userId autenticado
 
-      const user = await User.findById(userId);
-      if (!user) {
-          throw httpError(404, 'Usuario no encontrado');
-      }
-
-      if (parentId) {
-          const parentComment = await commentUser.findById(parentId);
-          if (!parentComment) {
-              throw httpError(404, 'Comentario padre no encontrado');
-          }
-
-          const newReply = new commentUser({
-              movieId,
-              userId,
-              commentText,
-              parentId
-          });
-
-          await newReply.save();
-
-          // Enviar notificación al autor del comentario padre
-          const notification = new Notification({
-            userId: parentComment.userId._id, // El destinatario de la notificación es el autor del comentario padre
-            message: `@${user.username} ha respondido tu comentario`,
-            avatar: user.avatar, // Solo agregar el avatar
-            parentId: parentComment._id, // Agregar el parentId del comentario padre
-        
-
-        });
-          await notification.save();
-
-          res.status(201).json({ message: 'Respuesta agregada exitosamente' });
-      } else {
-          const newComment = new commentUser({
-              movieId,
-              userId,
-              commentText
-          });
-
-          await newComment.save();
-          res.status(201).json({ message: 'Comentario agregado exitosamente' });
-      }
-  } catch (error) {
-      next(error);
-  }
-};
-
-// Función para obtener comentarios y respuestas
-
-controller.getComments = async (req, res, next) => {
-  try {
-    const { id: movieId } = req.params;
-    const { parentId } = req.query;
-    let commentsQuery = { movieId, parentId: null };
-
-    if (parentId) {
-      commentsQuery = { movieId, parentId };
+    // Verificamos si el usuario existe
+    const user = await User.findById(userId);
+    if (!user) {
+      return sendJsonResponse(res, 404, { error: 'Usuario no encontrado' });
     }
 
-    const comments = await commentUser.find(commentsQuery).populate('userId', 'username avatar').sort({ createdAt: -1 });
+    // Si `parentId` existe, estamos creando una respuesta a otro comentario
+    if (parentId) {
+      const parentComment = await commentUser.findById(parentId);
+      if (!parentComment) {
+        return sendJsonResponse(res, 404, { error: 'Comentario padre no encontrado' });
+      }
 
-    // Convertir la fecha a la zona horaria de El Salvador y formatearla
-    const formattedComments = comments.map(comment => {
-      return {
-        ...comment.toObject(),
-        createdAt: moment(comment.createdAt).tz('America/El_Salvador').format('YYYY-MM-DD HH:mm:ss'),
-        updatedAt: moment(comment.updatedAt).tz('America/El_Salvador').format('YYYY-MM-DD HH:mm:ss')
-      };
-    });
+      const newReply = new commentUser({
+        movieId,
+        userId,
+        commentText,
+        parentId
+      });
 
-    res.status(200).json(formattedComments);
+      await newReply.save();
+
+      // Enviar notificación al autor del comentario padre
+      const notification = new Notification({
+        userId: parentComment.userId, // El destinatario de la notificación es el autor del comentario padre
+        message: `@${user.username} ha respondido tu comentario`,
+        avatar: user.avatar, // Solo agregar el avatar del usuario que respondió
+        parentId: parentComment._id // Agregar el parentId del comentario padre
+      });
+      await notification.save();
+
+      // Respuesta de éxito
+      sendJsonResponse(res, 201, { message: 'Respuesta agregada exitosamente' });
+    } else {
+      // Crear un nuevo comentario si no existe `parentId`
+      const newComment = new commentUser({
+        movieId,
+        userId,
+        commentText
+      });
+
+      await newComment.save();
+      sendJsonResponse(res, 201, { message: 'Comentario agregado exitosamente' });
+    }
   } catch (error) {
-    next(error);
+    // Manejo de errores
+    sendJsonResponse(res, 500, { error: error.message });
   }
 };
 
-
-controller.pollComments = async (req, res, next) => {
+// Obtener comentarios y respuestas
+controller.getComments = async (req, res) => {
   try {
-    const { id: movieId } = req.params;
-    const { lastFetched } = req.query;
+    const movieId = req.params.id;
+    const parentId = req.query.parentId;
+    const commentsQuery = parentId ? { movieId, parentId } : { movieId, parentId: null };
 
+    const comments = await commentUser.find(commentsQuery).populate("userId", "username avatar").sort({ createdAt: -1 });
+
+    const formattedComments = comments.map(comment => ({
+      ...comment.toObject(),
+      createdAt: moment(comment.createdAt).tz("America/El_Salvador").format("YYYY-MM-DD HH:mm:ss"),
+      updatedAt: moment(comment.updatedAt).tz("America/El_Salvador").format("YYYY-MM-DD HH:mm:ss"),
+    }));
+
+    sendJsonResponse(res, 200, formattedComments);
+  } catch (error) {
+    sendJsonResponse(res, 500, { error: error.message });
+  }
+};
+
+// Obtener nuevos comentarios
+controller.pollComments = async (req, res) => {
+  try {
+    // Extraemos el parámetro `id` de la película y la consulta `lastFetched` de la URL
+    const movieId = req.params.id;
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const lastFetched = url.searchParams.get("lastFetched");
+
+    // Obtenemos los nuevos comentarios creados después de `lastFetched`
     const newComments = await commentUser.find({
       movieId,
       createdAt: { $gt: lastFetched }
     }).populate('userId', 'username avatar').sort({ createdAt: 1 });
 
+    // Formateamos las fechas de los comentarios
     const formattedComments = newComments.map(comment => ({
       ...comment.toObject(),
       createdAt: moment(comment.createdAt).tz('America/El_Salvador').format('YYYY-MM-DD HH:mm:ss'),
       updatedAt: moment(comment.updatedAt).tz('America/El_Salvador').format('YYYY-MM-DD HH:mm:ss')
     }));
 
-    res.status(200).json(formattedComments);
+    // Enviamos la respuesta con los comentarios formateados
+    sendJsonResponse(res, 200, formattedComments);
   } catch (error) {
-    next(error);
+    sendJsonResponse(res, 500, { error: error.message });
   }
 };
 
-
-// Función para obtener respuestas a un comentario específico
-controller.getRepliesToComment = async (req, res, next) => {
+// Obtener respuestas a un comentario específico
+controller.getRepliesToComment = async (req, res) => {
   try {
-    const { id: movieId, parentId } = req.params;
+    // Obtenemos los parámetros `id` y `parentId` de la URL
+    const movieId = req.params.id;
+    const parentId = req.params.parentId;
 
-    const replies = await commentUser.find({ movieId, parentId }).populate('userId', 'username avatar').sort({ createdAt: 1 });
+    // Buscamos las respuestas al comentario específico
+    const replies = await commentUser.find({ movieId, parentId })
+      .populate('userId', 'username avatar')
+      .sort({ createdAt: 1 });
 
-    // Convertir la fecha a la zona horaria de El Salvador y formatearla
-    const formattedReplies = replies.map(reply => {
-      return {
-        ...reply.toObject(),
-        createdAt: moment(reply.createdAt).tz('America/El_Salvador').format('YYYY-MM-DD HH:mm:ss'),
-        updatedAt: moment(reply.updatedAt).tz('America/El_Salvador').format('YYYY-MM-DD HH:mm:ss')
-      };
-    });
+    // Formateamos las fechas de las respuestas a la zona horaria de El Salvador
+    const formattedReplies = replies.map(reply => ({
+      ...reply.toObject(),
+      createdAt: moment(reply.createdAt).tz('America/El_Salvador').format('YYYY-MM-DD HH:mm:ss'),
+      updatedAt: moment(reply.updatedAt).tz('America/El_Salvador').format('YYYY-MM-DD HH:mm:ss')
+    }));
 
-    res.status(200).json(formattedReplies);
+    // Enviamos la respuesta con las respuestas formateadas
+    sendJsonResponse(res, 200, formattedReplies);
   } catch (error) {
-    next(error);
+    sendJsonResponse(res, 500, { error: error.message });
   }
 };
 
-controller.getNotifications = async (req, res, next) => {
+// Obtener notificaciones de usuario
+controller.getNotifications = async (req, res) => {
   try {
     const userId = req.user._id;
-    const notifications = await Notification.find({ userId }).populate('userId', 'username avatar').sort({ createdAt: -1 }).limit(10); ;
-    res.status(200).json(notifications);
+    const notifications = await Notification.find({ userId }).populate("userId", "username avatar").sort({ createdAt: -1 }).limit(10);
+
+    sendJsonResponse(res, 200, notifications);
   } catch (error) {
-    next(error);
+    sendJsonResponse(res, 500, { error: error.message });
   }
 };
 
+// Marcar notificación como leída
+controller.markAsRead = async (req, res) => {
+  try {
+    const notificationId = req.params.id;
+    const notification = await Notification.findById(notificationId);
+    if (!notification) return sendJsonResponse(res, 404, { error: "Notificación no encontrada" });
 
-  
-  controller.markAsRead = async (req, res, next) => {
-    try {
-      const { id } = req.params;
-      const notification = await Notification.findById(id);
-      if (!notification) {
-        throw httpError(404, 'Notificación no encontrada');
-      }
-      notification.read = true;
-      await notification.save();
-      res.status(200).json({ message: 'Notificación marcada como leída' });
-    } catch (error) {
-      next(error);
+    notification.read = true;
+    await notification.save();
+    sendJsonResponse(res, 200, { message: "Notificación marcada como leída" });
+  } catch (error) {
+    sendJsonResponse(res, 500, { error: error.message });
+  }
+};
+
+// Eliminar un comentario y sus respuestas
+controller.deleteComment = async (req, res) => {
+  try {
+    // Obtenemos el `id` del comentario desde `req.params`
+    const commentId = req.params.id;
+
+    // Buscamos el comentario en la base de datos
+    const comment = await commentUser.findById(commentId);
+    if (!comment) {
+      return sendJsonResponse(res, 404, { error: 'Comentario no encontrado' });
     }
-  };
-  
 
-  //borrar comentario padre
-  // Función para eliminar un comentario y sus respuestas
-controller.deleteComment = async (req, res, next) => {
-  try {
-      const { id: commentId } = req.params;
+    // Eliminamos todas las respuestas al comentario
+    await commentUser.deleteMany({ parentId: commentId });
 
-      const comment = await commentUser.findById(commentId);
-      if (!comment) {
-          throw httpError(404, 'Comentario no encontrado');
-      }
+    // Eliminamos el comentario principal
+    await commentUser.findByIdAndDelete(commentId);
 
-      // Eliminar todas las respuestas del comentario
-      await commentUser.deleteMany({ parentId: commentId });
-
-      // Eliminar el comentario
-      await commentUser.findByIdAndDelete(commentId);
-
-      res.status(200).json({ message: 'Comentario y sus respuestas eliminados exitosamente' });
+    // Enviamos una respuesta de éxito
+    sendJsonResponse(res, 200, { message: 'Comentario y sus respuestas eliminados exitosamente' });
   } catch (error) {
-      next(error);
+    sendJsonResponse(res, 500, { error: error.message });
   }
 };
 
-
-//eliminar comentarios hijos
-// Función para eliminar una respuesta específica
-controller.deleteReply = async (req, res, next) => {
+// Eliminar una respuesta específica
+controller.deleteReply = async (req, res) => {
   try {
-      const { id: replyId } = req.params;
+    // Obtenemos el `id` de la respuesta desde `req.params`
+    const replyId = req.params.id;
 
-      const reply = await commentUser.findById(replyId);
-      if (!reply) {
-          throw httpError(404, 'Respuesta no encontrada');
-      }
+    // Buscamos la respuesta en la base de datos
+    const reply = await commentUser.findById(replyId);
+    if (!reply) {
+      return sendJsonResponse(res, 404, { error: 'Respuesta no encontrada' });
+    }
 
-      // Eliminar la respuesta
-      await commentUser.findByIdAndDelete(replyId);
+    // Eliminamos la respuesta
+    await commentUser.findByIdAndDelete(replyId);
 
-      res.status(200).json({ message: 'Respuesta eliminada exitosamente' });
+    // Enviamos una respuesta de éxito
+    sendJsonResponse(res, 200, { message: 'Respuesta eliminada exitosamente' });
   } catch (error) {
-      next(error);
+    sendJsonResponse(res, 500, { error: error.message });
   }
 };
-  
+
 module.exports = controller;

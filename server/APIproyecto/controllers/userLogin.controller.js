@@ -1,16 +1,20 @@
-const controller = {};
 const User = require('../models/account.model');
-const httpError = require('http-errors');
 const MoviesService = require('../services/movies.services');
+const { sendJsonResponse } = require('../utils/http.helpers');
 
-controller.getUserData = async (req, res, next) => {
+const controller = {};
+
+controller.getUserData = async (req, res) => {
   try {
+    // Obtenemos el ID del usuario autenticado
     const userId = req.user._id;
     const user = await User.findById(userId);
+
     if (!user) {
-      throw httpError(404, 'Usuario no encontrado');
+      return sendJsonResponse(res, 404, { error: 'Usuario no encontrado' });
     }
 
+    // Si el usuario no ha visto películas aleatorias, cargamos las películas por género
     let moviesByGenre = {};
     if (!user.hasSeenRandomMovies) {
       const genres = user.movie_genere;
@@ -18,22 +22,22 @@ controller.getUserData = async (req, res, next) => {
         const movies = await MoviesService.getMoviesCategoryAPI(genre, 20);
         moviesByGenre[genre] = movies;
       }
-     
     }
 
-    res.status(200).json({
+    // Enviamos la respuesta con los datos del usuario y sus películas
+    sendJsonResponse(res, 200, {
       user: {
         username: user.username,
         year_nac: user.year_nac,
         genere: user.genere,
         movie_genere: user.movie_genere,
         avatar: user.avatar,
-
       },
       movies: moviesByGenre
     });
   } catch (error) {
-    next(error);
+    // Enviamos la respuesta de error
+    sendJsonResponse(res, 500, { error: error.message });
   }
 };
 

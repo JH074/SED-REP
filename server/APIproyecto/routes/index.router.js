@@ -1,15 +1,18 @@
+const userRouter = require('./users.router');
+const movieRouter = require('./movie.router');
+const { sendJsonResponse } = require('../utils/http.helpers');
 
-const express = require("express");
-const router = express.Router(); //enrutador 
+function apiRouter(req, res) {
+  if (req.url.startsWith('/account')) {
+    req.url = req.url.replace('/account', ''); // Eliminar el prefijo para que userRouter lo maneje directamente
+    return userRouter(req, res);
+  } else if (req.url.startsWith('/movies')) {
+    // Eliminar el prefijo '/movies' de req.url para que `movieRouter` lo procese directamente
+    req.url = req.url.replace('/movies', '');
+    return movieRouter(req, res);
+  } else {
+    sendJsonResponse(res, 404, { error: 'Ruta no encontrada' });
+  }
+}
 
-const userRouter = require ("./users.router");//exportar enrutador
-
-const movieRouter=require("./movie.router")
-
-//registrarse/iniciar sesion
-router.use("/account",userRouter);
-
-//api/data/movie
-router.use("/movies",movieRouter);
-
-module.exports = router;
+module.exports = apiRouter;

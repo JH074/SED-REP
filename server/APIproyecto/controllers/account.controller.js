@@ -1,149 +1,98 @@
-//prcesos para aobtener la peticion, procesarla y obtener la respuesta
-const controller = {};//encargado de contener la informacion
+const controller = {};
 const User = require("../models/account.model");
-const httpError = require("http-errors");
 const { createToken, verifyToken } = require("../utils/jwl.tools");
+const { sendJsonResponse, parseRequestBody } = require("../utils/http.helpers");
 
-controller.register=async(req,res,next)=>{
-    try {
-        const {
-          username,
-          email,
-          password,
-          year_nac,
-          genere,
-         movie_genere,
-         avatar,
-         role
-        } = req.body;
-  
-        const user = await User.findOne({ $or: [{ email: email }] });
-  
-        if (user) {
-          throw httpError(409, "Ya existe esta cuenta");
-        }
-  
-        const newUser = new User({
-        
-            username:username,
-            email:email,
-            password: password,
-            year_nac:year_nac,
-            genere:genere,
-           movie_genere:movie_genere,
-           avatar:avatar,
-           role: role// Aquí se asegura de establecer el rol proporcionado
+controller.register = async (req, res) => {
+  try {
+    // Parseamos el cuerpo de la solicitud para obtener los datos
+    const body = await parseRequestBody(req);
 
-        });
-  
-        await newUser.save();
-  
-        return res.status(201).json({ message: "Se ha creado correctamente tu usuario" });
-      } catch (error) {
-        next(error);
-      }
-  
-      
-  
-  
+    const {
+      username,
+      email,
+      password,
+      year_nac,
+      genere,
+      movie_genere,
+      avatar,
+      role
+    } = body;
 
+    // Verificamos si el usuario ya existe
+    const user = await User.findOne({ $or: [{ email: email }] });
+    if (user) {
+      return sendJsonResponse(res, 409, { error: "Ya existe esta cuenta" });
+    }
 
+    // Creamos un nuevo usuario
+    const newUser = new User({
+      username: username,
+      email: email,
+      password: password,
+      year_nac: year_nac,
+      genere: genere,
+      movie_genere: movie_genere,
+      avatar: avatar,
+      role: role // Establecemos el rol proporcionado
+    });
+
+    await newUser.save();
+
+    // Enviamos la respuesta de éxito
+    sendJsonResponse(res, 201, { message: "Se ha creado correctamente tu usuario" });
+  } catch (error) {
+    // Manejo de errores
+    sendJsonResponse(res, 500, { error: error.message });
+  }
 };
 
+controller.login = async (req, res) => {
+  try {
+    // Parseamos el cuerpo de la solicitud para obtener los datos de login
+    const { email, password } = await parseRequestBody(req);
 
+    // Buscamos al usuario por email
+    const user = await User.findOne({ email });
 
-    //LOGIN
-    controller.login = async (req, res, next) => {
-      try {
-        const { email,password}= req.body;
+    if (!user) {
+      return sendJsonResponse(res, 404, { error: "El usuario no se ha encontrado" });
+    }
 
-        // obteniendo informacion(correo,contraseña)
-     
-        const user = await User.findOne({ $or: [{email:email}] });
+    // Verificamos la contraseña
+    if (!user.comparePassword(password)) {
+      return sendJsonResponse(res, 401, { error: "Contraseña incorrecta" });
+    }
 
+    // Generamos el token de sesión
+    const token = await createToken(user._id);
 
-        if (!user) {
-          throw httpError(404, "El usuario no se ha encontrado");
-        }
+    // Manejamos los tokens para mantener las últimas 5 sesiones
+    let _tokens = [...user.tokens];
+    const _verifyPromise = _tokens.map(async (_t) => {
+      const status = await verifyToken(_t);
+      return status ? _t : null;
+    });
 
-        //verificar contraseña si no coincide
-        if (!user.comparePassword(password)) {
-          throw httpError(401, "contraseña incorrecta");
-        }
-      //   ///Exisite y ya esta verificado
+    _tokens = (await Promise.all(_verifyPromise)).filter(Boolean).slice(0, 4);
+    _tokens = [token, ..._tokens];
+    user.tokens = _tokens;
 
-      const token = await createToken(user._id);
+    // Guardamos los cambios del usuario
+    await user.save();
 
-      //   //almacenar tokens
-        let _tokens = [...user.tokens];
-        //verifia la integridad de los tokens actuales
-        const _verifiyPromise = _tokens.map(async (_t) => {
-          const status = await verifyToken(_t);
-          return status ? _t : null;
-        });
+    // Enviamos la respuesta de éxito con el token
+    sendJsonResponse(res, 200, {
+      message: 'Se ha iniciado sesión correctamente',
+      token,
+      role: user.role
+    });
+  } catch (error) {
+    // Manejo de errores
+    sendJsonResponse(res, 500, { error: error.message });
+  }
+};
 
-        //5 sesionnes
-        _tokens = (await Promise.all(_verifiyPromise))
-          .filter(_t => _t)
-          .slice(0, 4);
-
-        //primera posicion(shitf)
-        _tokens = [token, ..._tokens];
-        user.tokens = _tokens;
-
-        await user.save();
-
-        return res.status(200).json({
-          message: 'Se ha iniciado sesión correctamente',
-          token,
-          role: user.role
-
-      });
-      } catch (error) {
-        next(error);
-      }
-    };
-
-
-
-    // LOGOUT
-// // LOGOUT
-// controller.logout = async (req, res, next) => {
-//   try {
-//     // Verificar que el token se está enviando en la cabecera de autorización
-//     const authHeader = req.headers.authorization;
-//     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-//       throw httpError(400, "Token no proporcionado o formato inválido");
-//     }
-
-//     const token = authHeader.split(" ")[1];
-//     const { userId } = await verifyToken(token);
-
-//     // Asegurarse de que verifyToken devuelva el userId
-//     if (!userId) {
-//       throw httpError(401, "Token inválido");
-//     }
-
-//     const user = await User.findById(userId);
-
-//     if (!user) {
-//       throw httpError(404, "Usuario no encontrado");
-//     }
-
-//     // Eliminar el token de la lista de tokens del usuario
-//     user.tokens = user.tokens.filter(t => t !== token);
-
-//     await user.save();
-
-//     return res.status(200).json({
-//       message: 'Se ha cerrado sesión correctamente'
-//     });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
-
-// Logout de usuario
 controller.logout = async (req, res, next) => {
   try {
     const token = req.headers.authorization.split(" ")[1];
@@ -172,8 +121,5 @@ controller.logout = async (req, res, next) => {
     next(error);
   }
 };
-
-   
-
 
 module.exports = controller;

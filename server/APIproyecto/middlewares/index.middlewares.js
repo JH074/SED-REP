@@ -1,15 +1,14 @@
-const {validationResult} =require("express-validator")
+const { sendJsonResponse } = require('../utils/http.helpers');
 
-module.exports=(req,res,next)=>{
-    const errors=validationResult(req);
-
-    if(!errors.isEmpty()){
-        return res.status(400).json({
-            errors:errors.array().map(_e=>({
-                field: _e.param,
-                message: _e.msg
-            }))
-        })
-    }
-    next();
-}
+// Middleware de validación personalizado
+module.exports = (req, res, errors) => {
+  if (errors && errors.length > 0) {
+    return sendJsonResponse(res, 400, {
+      errors: errors.map(error => ({
+        field: error.field,
+        message: error.message,
+      })),
+    });
+  }
+  return true; // Indica que la validación fue exitosa
+};

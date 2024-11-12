@@ -1,22 +1,47 @@
-const express = require('express');
+const fs = require('fs');
 const path = require('path');
-const cookieParser = require('cookie-parser');
-const logger = require('morgan');
+const url = require('url');
 const database = require('./config/database.config');
-const apiRouter=require("./routes/index.router")
+const apiRouter = require('./routes/index.router'); // Enrutador principal
 
-const app = express();
 database.connect();
 
-app.use(logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
+function createServerHandler() {
+  return (req, res) => {
+    const parsedUrl = url.parse(req.url, true);
+    const pathname = parsedUrl.pathname;
 
-//static router
-app.use(express.static(path.join(__dirname, 'public')));
+    // Configurar las cabeceras para CORS y JSON
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', 'application/json');
 
-//api Router
-app.use("/api",apiRouter)
+    // Rutas de la API
+    if (pathname.startsWith('/api')) {
+      // Eliminar el prefijo /api para que apiRouter maneje solo /account y /movies
+      req.url = pathname.replace('/api', '');
+      return apiRouter(req, res);
+    } else if (pathname.startsWith('/public')) {
+      // Manejo de archivos estáticos
+      serveStaticFile(res, pathname);
+    } else {
+      // Respuesta 404 para rutas no encontradas
+      res.statusCode = 404;
+      res.end(JSON.stringify({ error: "Not Found" }));
+    }
+  };
+}
 
-module.exports = app;
+function serveStaticFile(res, pathname) {
+  const filePath = path.join(__dirname, pathname);
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      res.statusCode = 404;
+      res.end("File not found");
+    } else {
+      res.statusCode = 200;
+      res.end(data);
+    }
+  });
+}
+
+module.exports = createServerHandler;

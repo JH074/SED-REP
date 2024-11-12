@@ -1,82 +1,95 @@
 
 const controller = {};//encargado de contener la informacion
 const Movie = require("../models/movieData.model");
-const MoviesService = require('../services/movies.services');
+const movieServices = require('../services/movies.services');
 const User = require('../models/account.model');
+const { parseRequestBody, sendJsonResponse } = require('../utils/http.helpers');
 
 const httpError = require("http-errors");
-const moviesServices = require("../services/movies.services");
 
-controller.movieData=async(req,res,next)=>{
+controller.movieData = async (req, res) => {
+  try {
+    // Parseamos el cuerpo de la solicitud para obtener los datos de la película
+    const { title, synopsis, duration, actors, coverPhoto, categories } = await parseRequestBody(req);
 
-  try{
-      const{
-      //campos de datos
-      title, synopsis, duration, actors, coverPhoto, categories 
-  }=req.body;
+    // Creamos un nuevo objeto de película con los datos proporcionados
+    const newMovie = new Movie({
+      title: title,
+      synopsis: synopsis,
+      duration: duration,
+      actors: actors,
+      coverPhoto: coverPhoto,
+      categories: categories
+    });
 
-  // se le asignan los campos respectivos creando asi un nuevo objeto 
-  const newMovie=new Movie({
-      //campos de datos
-      title:title,
-          synopsis:synopsis,
-          duration:duration,
-          actors:actors,
-          coverPhoto:coverPhoto,
-          categories:categories
+    const movieSave = await newMovie.save();
 
-});   
+    if (!movieSave) {
+      return sendJsonResponse(res, 500, { error: "No se ha podido guardar la película" });
+    }
 
-const movieSave = await newMovie.save();
-
-if (!movieSave) {
-  throw httpError(500, "No se ha podido guardar las peliculas");
-}
-res.status(200).json({ message:"Se ha creado la pelicula" });
-
-  }catch(error){
-      next(error);
-
+    // Enviamos la respuesta de éxito
+    sendJsonResponse(res, 200, { message: "Se ha creado la película" });
+  } catch (error) {
+    // Enviamos la respuesta de error
+    sendJsonResponse(res, 500, { error: error.message });
   }
-}
+};
 
-//traer las peliculas
-controller.findAll = async (req, res, next) => {
-    try {
-      const movies = await MoviesService.getMoviesAPI();
+controller.getRatedMovies = async (req, res) => {
+  try {
+    const userId = req.user._id; // Asegurarse de que el middleware de autenticación asigna correctamente el usuario en req.user
+    const ratedMovies = await movieServices.getRatedMoviesAPI(userId);
 
-      // Verificamos si se han encontrado películas
-      if (!movies || movies.length === 0) {
-          // Si no se encuentra ninguna película, lanzamos un error 500
-          throw httpError(500, "No se han encontrado películas");
+    // Responder con las películas calificadas
+    sendJsonResponse(res, 200, { ratedMovies });
+  } catch (error) {
+    console.error("Error en controller.getRatedMovies:", error.message, error.stack);
 
-      }      
-      return res.status(200).json({ data: movies });
-    } catch (error) {
-      next(error);
+    // Enviar una respuesta de error
+    sendJsonResponse(res, 500, { error: "Error al obtener las películas calificadas. Por favor, inténtelo de nuevo." });
+  }
+};
+// Obtener todas las películas desde un servicio externo
+controller.findAll = async (req, res) => {
+  try {
+    // Obtenemos todas las películas a través del servicio
+    const movies = await movieServices.getMoviesAPI();
+
+    // Verificamos si se han encontrado películas
+    if (!movies || movies.length === 0) {
+      return sendJsonResponse(res, 500, { error: "No se han encontrado películas" });
     }
-  };
 
+    // Enviamos la respuesta con las películas encontradas
+    sendJsonResponse(res, 200, { data: movies });
+  } catch (error) {
+    // Enviamos la respuesta de error
+    sendJsonResponse(res, 500, { error: error.message });
+  }
+};
 
-  controller.deleteMovie = async (req, res, next) => {
-    try {
-        const { id } = req.params; // Obtener el ID de la película a eliminar
+// Eliminar una película por su ID
+controller.deleteMovie = async (req, res) => {
+  try {
+    // Obtenemos el ID de la película desde `req.params`
+    const movieId = req.params.id;
 
-        // Verificar si la película existe
-        const movie = await Movie.findById(id);
-        if (!movie) {
-            throw httpError(404, 'Película no encontrada');
-        }
-
-        // Eliminar la película
-        await Movie.findByIdAndDelete(id);
-
-        // Respuesta exitosa
-        res.status(200).json({ message: 'Película eliminada exitosamente' });
-    } catch (error) {
-        // Manejar errores y pasar al siguiente middleware de error
-        next(error);
+    // Verificamos si la película existe en la base de datos
+    const movie = await Movie.findById(movieId);
+    if (!movie) {
+      return sendJsonResponse(res, 404, { error: 'Película no encontrada' });
     }
+
+    // Eliminamos la película
+    await Movie.findByIdAndDelete(movieId);
+
+    // Enviamos una respuesta de éxito
+    sendJsonResponse(res, 200, { message: 'Película eliminada exitosamente' });
+  } catch (error) {
+    // Enviamos una respuesta de error
+    sendJsonResponse(res, 500, { error: error.message });
+  }
 };
 
 controller.getMovieByAdminId = async (req, res, next) => {
@@ -99,58 +112,16 @@ controller.getMovieByAdminId = async (req, res, next) => {
   }
 };
 
-
-
-controller.getAllMovies = async (req, res, next) => {
-    try {
-        // Obtener todas las películas
-        const movies = await Movie.find();
-
-        // Respuesta exitosa con las películas encontradas
-        res.status(200).json({ data: movies });
-    } catch (error) {
-        // Manejar errores y pasar al siguiente middleware de error
-        next(error);
-    }
-};
-
-controller.getMostViewedMovies = async (req, res, next) => {
+controller.getAllMovies = async (req, res) => {
   try {
-      // Obtener el usuario autenticado desde req.user (gracias al middleware authenticate)
-      const userId = req.user._id;
+    // Obtener todas las películas
+    const movies = await Movie.find();
 
-      // Buscar al usuario en la base de datos
-      const user = await User.findById(userId);
-      if (!user) {
-          throw httpError(404, 'Usuario no encontrado');
-      }
-
-      const limit = 2; // Puedes ajustar este valor según tus necesidades
-      const mostViewedMovies = await MoviesService.getMostViewedMoviesAPI(limit);
-
-      res.status(200).json({moviesMostViews:mostViewedMovies});
+    // Enviar respuesta exitosa con las películas encontradas
+    sendJsonResponse(res, 200, { data: movies });
   } catch (error) {
-      next(error);
-  }
-};
-
-controller.getMostRecentMovies = async (req, res, next) => {
-  try {
-      // Obtener el usuario autenticado desde req.user (gracias al middleware authenticate)
-      const userId = req.user._id;
-
-      // Buscar al usuario en la base de datos
-      const user = await User.findById(userId);
-      if (!user) {
-          throw httpError(404, 'Usuario no encontrado');
-      }
-
-      const limit = 2; // Puedes ajustar este valor según tus necesidades
-      const mostRecentMovies = await MoviesService.getMostRecentMoviesAPI(limit);
-
-      res.status(200).json({moviesRecent:mostRecentMovies});
-  } catch (error) {
-      next(error);
+    // Enviar respuesta de error
+    sendJsonResponse(res, 500, { error: error.message });
   }
 };
 
@@ -159,31 +130,81 @@ controller.getMostRecentMovies = async (req, res, next) => {
 
 
 
-controller.searchMovieByTitle = async (req, res, next) => {
+// Obtener las películas más vistas por usuario
+controller.getMostViewedMovies = async (req, res) => {
   try {
+    // Obtener el usuario autenticado desde req.user (supone que un middleware de autenticación lo configuró)
     const userId = req.user._id;
 
     // Buscar al usuario en la base de datos
     const user = await User.findById(userId);
     if (!user) {
-      throw httpError(404, 'Usuario no encontrado');
+      return sendJsonResponse(res, 404, { error: 'Usuario no encontrado' });
     }
 
-    const { title } = req.params;
-    const { sortBy, genre } = req.query;
+    const limit = 2; // Puedes ajustar este valor según tus necesidades
+    const mostViewedMovies = await movieServices.getMostViewedMoviesAPI(limit);
 
-    // Buscar películas según el título proporcionado con filtros adicionales
-    const movies = await MoviesService.searchMovieByTitleAPI(title, userId, sortBy, genre);
+    // Enviar respuesta con las películas más vistas
+    sendJsonResponse(res, 200, { moviesMostViews: mostViewedMovies });
+  } catch (error) {
+    // Enviar respuesta de error
+    sendJsonResponse(res, 500, { error: error.message });
+  }
+};
+
+
+// Obtener las películas más recientes
+controller.getMostRecentMovies = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId);
+    if (!user) throw new Error("Usuario no encontrado");
+
+    const limit = 2;
+    const mostRecentMovies = await movieServices.getMostRecentMoviesAPI(limit);
+    sendJsonResponse(res, 200, { moviesRecent: mostRecentMovies });
+  } catch (error) {
+    sendJsonResponse(res, 500, { error: error.message });
+  }
+};
+
+
+
+
+
+
+// Buscar película por título
+
+controller.searchMovieByTitle = async (req, res) => {
+  try {
+    // Obtener el ID del usuario autenticado desde req.user
+    const userId = req.user._id;
+
+    // Buscar al usuario en la base de datos
+    const user = await User.findById(userId);
+    if (!user) {
+      return sendJsonResponse(res, 404, { error: 'Usuario no encontrado' });
+    }
+
+    // Extraer el título desde los parámetros de la URL
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const title = req.params.title;
+    const sortBy = url.searchParams.get("sortBy");
+    const genre = url.searchParams.get("genre");
+
+    // Buscar películas por título y filtros adicionales
+    const movies = await movieServices.searchMovieByTitleAPI(title, userId, sortBy, genre);
 
     if (!movies || movies.length === 0) {
-      throw httpError(404, "No se encontraron películas con el título especificado.");
+      return sendJsonResponse(res, 404, { error: "No se encontraron películas con el título especificado." });
     }
 
-    // Devolver las películas encontradas como respuesta
-        return res.status(200).json({ moviesA:movies} );
-
+    // Enviar las películas encontradas como respuesta
+    sendJsonResponse(res, 200, { moviesA: movies });
   } catch (error) {
-    next(error);
+    // Enviar respuesta de error
+    sendJsonResponse(res, 500, { error: error.message });
   }
 };
 
@@ -194,56 +215,30 @@ controller.searchMovieByTitle = async (req, res, next) => {
 
 
 
-
-
-
-
-
-
-// Obtener las películas más vistas
-controller.getMostViewedMovies = async (req, res, next) => {
+// Obtener película por ID con detalles
+controller.getMovieById = async (req, res) => {
   try {
-      const userId = req.user._id;
-
-      const user = await User.findById(userId);
-      if (!user) {
-          throw httpError(404, 'Usuario no encontrado');
-      }
-
-      const limit = 2; 
-      const mostViewedMovies = await MoviesService.getMostViewedMoviesAPI(limit);
-
-      
-      res.status(200).json({ moviesMostViews: mostViewedMovies });
-  } catch (error) {
-      next(error);
-  }
-};
-
-
-
-
-
-controller.getMovieById = async (req, res, next) => {
-  try { 
-
-    const { id } = req.params;
+    // Obtener el ID de la película desde los parámetros de la URL y el ID del usuario autenticado
+    const movieId = req.params.id;
     const userId = req.user._id;
 
     // Buscar al usuario en la base de datos
     const user = await User.findById(userId);
     if (!user) {
-      throw httpError(404, 'Usuario no encontrado');
+      return sendJsonResponse(res, 404, { error: 'Usuario no encontrado' });
     }
+
     // Obtener los detalles de la película por ID
-    const movieDetails = await MoviesService.fetchMovieByIdAPI(id);
+    const movieDetails = await movieServices.fetchMovieByIdAPI(movieId);
     if (!movieDetails || movieDetails.length === 0) {
-      throw httpError(404, "No se encontraron películas.");
+      return sendJsonResponse(res, 404, { error: "No se encontraron películas." });
     }
-    // Devolver los detalles de la película
-    res.status(200).json( movieDetails);
+
+    // Enviar los detalles de la película en la respuesta
+    sendJsonResponse(res, 200, movieDetails);
   } catch (error) {
-    next(error);
+    // Enviar respuesta de error
+    sendJsonResponse(res, 500, { error: error.message });
   }
 };
 
@@ -254,75 +249,70 @@ controller.getMovieById = async (req, res, next) => {
 
 
   //Eliminar pelicula
-  controller.deleteById = async (req, res, next) => {
+  controller.deleteById = async (req, res) => {
     try {
-      const { identifier } = req.params;
+      // Obtener el identificador de la película desde los parámetros de la URL
+      const identifier = req.params.identifier;
   
+      // Intentar eliminar la película por su ID
       const movieDeleteById = await Movie.findByIdAndDelete(identifier);
   
       if (!movieDeleteById) {
-        throw httpError(500, "No se ha podido eliminar la pelicula");
+        return sendJsonResponse(res, 500, { error: "No se ha podido eliminar la película" });
       }
   
-      return res
-        .status(200)
-        .json({ message: "se ha eliminado correctamente la pelicula" });
+      // Enviar respuesta de éxito
+      sendJsonResponse(res, 200, { message: "Se ha eliminado correctamente la película" });
     } catch (error) {
-      next(); 
+      // Enviar respuesta de error
+      sendJsonResponse(res, 500, { error: error.message });
     }
   };
 
 
-// Obtener promedio de películas:
-controller.getMovieAverageRating = async (req, res, next) => {
+// Obtener promedio de calificación de una película
+controller.getMovieAverageRating = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user._id; // Asegúrate de que la autenticación agrega req.user correctamente
 
     // Buscar al usuario en la base de datos
     const user = await User.findById(userId);
     if (!user) {
-      throw httpError(404, 'Usuario no encontrado');
+      return sendJsonResponse(res, 404, { error: 'Usuario no encontrado' });
     }
+
     const { movieId } = req.params;
     console.log(`Buscando calificaciones para la película con ID: ${movieId}`);
 
-    const numericMovieId = Number(movieId);
-
-    
     // Buscar todos los usuarios que han calificado esta película
     const users = await User.find({ 'ratings.movieId': movieId });
     console.log(`Usuarios encontrados: ${users.length}`);
-    
-    // Recoger las calificaciones y detalles de la película de cada usuario
-       // Recoger la calificación más reciente de cada usuario para la película
-       const latestRatings = users.flatMap(user => {
-        const ratingsForMovie = user.ratings.filter(r => r.movieId === movieId);
-        if (ratingsForMovie.length > 0) {
-          // Obtener la calificación más reciente
-          const latestRating = ratingsForMovie[ratingsForMovie.length - 1].rating;
-          return [latestRating];
-        }
-        return [];
-      });
-      
 
-    
+    // Recoger la calificación más reciente de cada usuario para la película
+    const latestRatings = users.flatMap(user => {
+      const ratingsForMovie = user.ratings.filter(r => r.movieId === movieId);
+      if (ratingsForMovie.length > 0) {
+        // Obtener la calificación más reciente
+        const latestRating = ratingsForMovie[ratingsForMovie.length - 1].rating;
+        return [latestRating];
+      }
+      return [];
+    });
+
     // Verificar si hay calificaciones disponibles
     if (latestRatings.length === 0) {
-      return res.status(404).json({ message: 'No hay calificaciones para esta película' });
+      return sendJsonResponse(res, 404, { message: 'No hay calificaciones para esta película' });
     }
-    
-   // Calcular el promedio de las calificaciones más recientes
-   const averageRating = latestRatings.reduce((sum, rating) => sum + rating, 0) / latestRatings.length;
-   console.log(`Promedio de calificaciones: ${averageRating}`);
-   
-    
-    // Obtener los detalles de la primera película encontrada (asumiendo que todos los detalles son los mismos)
-    //const movieDetails = averageRating[0].movieDetails;
-    
-    return res.status(200).json({ averageRating });
+
+    // Calcular el promedio de las calificaciones más recientes
+    const averageRating = latestRatings.reduce((sum, rating) => sum + rating, 0) / latestRatings.length;
+    console.log(`Promedio de calificaciones: ${averageRating}`);
+
+    // Devolver el promedio de calificación
+    sendJsonResponse(res, 200, { averageRating });
   } catch (error) {
-    next(error);
+    console.error("Error en getMovieAverageRating:", error.message);
+    sendJsonResponse(res, 500, { error: "Error al obtener el promedio de calificación de la película" });
   }
 };
 
@@ -331,94 +321,77 @@ controller.getMovieAverageRating = async (req, res, next) => {
 
 
 // Obtener películas calificadas POR USUARIO
-controller.getRatedMovies = async (req, res, next) => {
+controller.rateMovie = async (req, res) => {
   try {
-    const userId = req.user._id; // Asumiendo que el ID del usuario está disponible en req.user
-    const ratedMovies = await MoviesService.getRatedMoviesAPI(userId);
-    res.status(200).json({ ratedMovies });
+    // Obtener datos del cuerpo de la solicitud
+    const { movieId, rating } = await parseRequestBody(req);
+    const userId = req.user._id; // Se asume que `req.user` se ha agregado previamente por autenticación
+
+    // Buscar al usuario en la base de datos
+    const user = await User.findById(userId);
+    if (!user) {
+      return sendJsonResponse(res, 404, { error: 'Usuario no encontrado' });
+    }
+
+    // Verificar si el usuario ya ha calificado esta película
+    const existingRating = user.ratings.find(r => r.movieId === movieId);
+    console.log('Calificación existente:', existingRating);
+
+    // Actualizar o agregar la calificación
+    if (existingRating) {
+      existingRating.rating = rating;
+    } else {
+      user.ratings.push({ movieId, rating });
+    }
+
+    // Guardar los cambios en el usuario
+    await user.save();
+    console.log('Todas las calificaciones del usuario:', user.ratings);
+
+    // Responder con un mensaje de éxito
+    sendJsonResponse(res, 200, { message: 'Calificación guardada correctamente' });
   } catch (error) {
-    console.error("Error in controller.getRatedMovies:", error.message, error.stack);
-    next(new Error("Error occurred while fetching rated movies. Please try again."));
+    console.error("Error en rateMovie:", error.message);
+    sendJsonResponse(res, 500, { error: 'Error al guardar la calificación' });
   }
 };
 
 
 
+controller.getTopRatedMoviesOverall = async (req, res) => {
+  try {
+    // Obtener todas las calificaciones de todos los usuarios
+    const users = await User.find();
+    const movieRatings = {};
 
-
-  
-
-
-  controller.rateMovie = async (req, res, next) => {
-    try {
-      const { movieId, rating } = req.body;
-      const userId = req.user._id;
-  
-      // Buscar al usuario en la base de datos
-      const user = await User.findById(userId);
-      if (!user) {
-        throw httpError(404, 'Usuario no encontrado');
-      }
-  
-      // Verificar si el usuario ya ha calificado esta película
-      const existingRating = user.ratings.find(r => r.movieId === movieId);
-  
-      // Registrar la calificación existente antes de modificar
-      console.log('Calificación existente:', existingRating);
-  
-      // Actualizar o agregar la calificación
-      if (existingRating) {
-        existingRating.rating = rating;
-      } else {
-        user.ratings.push({ movieId, rating });
-      }
-  
-      // Guardar los cambios en el usuario
-      await user.save();
-  
-      // Registrar todas las calificaciones después de guardar
-      console.log('Todas las calificaciones del usuario:', user.ratings);
-  
-      // Responder con mensaje de éxito
-      return res.status(200).json({ message: 'Calificación guardada correctamente' });
-    } catch (error) {
-      next(error);
-    }
-  };  
-
-
-  controller.getTopRatedMoviesOverall = async (req, res, next) => {
-    try {
-      // Obtener todas las calificaciones de todos los usuarios
-      const users = await User.find();
-      const movieRatings = {};
-  
-      users.forEach(user => {
-        user.ratings.forEach(rating => {
-          if (!movieRatings[rating.movieId]) {
-            movieRatings[rating.movieId] = [];
-          }
-          movieRatings[rating.movieId].push(rating.rating);
-        });
+    // Recopilar calificaciones por película
+    users.forEach(user => {
+      user.ratings.forEach(rating => {
+        if (!movieRatings[rating.movieId]) {
+          movieRatings[rating.movieId] = [];
+        }
+        movieRatings[rating.movieId].push(rating.rating);
       });
-  
-      // Calcular el promedio de calificaciones para cada película
-      const averageRatings = Object.keys(movieRatings).map(movieId => {
-        const ratings = movieRatings[movieId];
-        const averageRating = ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
-        return { movieId, averageRating };
-      });
-  
-      // Ordenar las películas por calificación promedio de mayor a menor
-      averageRatings.sort((a, b) => b.averageRating - a.averageRating);
-  
-      // Limitar a las top N películas
-      const topN = 10; // Puedes ajustar este valor según tus necesidades
-      const topRatedMovieIds = averageRatings.slice(0, topN).map(item => item.movieId);
-  
-      // Obtener detalles de las películas mejor calificadas
-      const moviesWithDetails = await Promise.all(topRatedMovieIds.map(async (movieId) => {
-        const movieDetails = await MoviesService.fetchMovieByIdAPI(movieId);
+    });
+
+    // Calcular el promedio de calificaciones para cada película
+    const averageRatings = Object.keys(movieRatings).map(movieId => {
+      const ratings = movieRatings[movieId];
+      const averageRating = ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
+      return { movieId, averageRating };
+    });
+
+    // Ordenar las películas por calificación promedio de mayor a menor
+    averageRatings.sort((a, b) => b.averageRating - a.averageRating);
+
+    // Limitar a las top N películas
+    const topN = 10;
+    const topRatedMovieIds = averageRatings.slice(0, topN).map(item => item.movieId);
+
+    // Obtener detalles de las películas mejor calificadas
+    const moviesWithDetails = await Promise.all(
+      topRatedMovieIds.map(async (movieId) => {
+        const movieDetails = await movieServices.fetchMovieByIdAPI(movieId);
         const averageRating = averageRatings.find(rating => rating.movieId === movieId).averageRating;
         return {
           id: movieDetails.id,
@@ -429,33 +402,41 @@ controller.getRatedMovies = async (req, res, next) => {
           genero: movieDetails.genero,
           descripcion: movieDetails.descripcion,
           trailer: movieDetails.trailer,
-          averageRating // Incluir el promedio de calificación
+          averageRating
         };
-      }));
-  
-      // Devolver las películas mejor calificadas por todos los usuarios
-      res.status(200).json({ topRatedMovies: moviesWithDetails });
-    } catch (error) {
-      next(error);
-    }
-  };
+      })
+    );
+
+    // Enviar las películas mejor calificadas
+    sendJsonResponse(res, 200, { topRatedMovies: moviesWithDetails });
+  } catch (error) {
+    // Enviar respuesta de error
+    sendJsonResponse(res, 500, { error: error.message });
+  }
+};
 
 
 
 
 
-  controller.addToWishlist = async (req, res) => {
-    const userId = req.user.id;  // Obtener el userId del token de autenticación
-    const { movieId } = req.body;
-  
-    try {
-      const result = await MoviesService.addToWishlistAPI(userId, movieId);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  };
-  
+
+ // Agregar una película a la lista de deseos del usuario
+ controller.addToWishlist = async (req, res) => {
+  try {
+    // Obtener el userId del token de autenticación y movieId del cuerpo de la solicitud
+    const userId = req.user.id;
+    const { movieId } = await parseRequestBody(req);
+
+    // Agregar la película a la lista de deseos
+    const result = await movieServices.addToWishlistAPI(userId, movieId);
+
+    // Enviar la respuesta de éxito
+    sendJsonResponse(res, 200, result);
+  } catch (error) {
+    // Enviar respuesta de error
+    sendJsonResponse(res, 500, { message: error.message });
+  }
+};
  
 
 
@@ -463,55 +444,65 @@ controller.getRatedMovies = async (req, res, next) => {
   //obtener Wathclist
 
   controller.getWishlist = async (req, res) => {
-    const userId = req.user.id;  // Obtener el userId del token de autenticación
-  
     try {
-      const wishlist = await MoviesService.getWishlistAPI(userId);
-      res.status(200).json({wishlist:wishlist});
+      // Obtener el userId del token de autenticación
+      const userId = req.user.id;
+  
+      // Obtener la lista de deseos del usuario
+      const wishlist = await movieServices.getWishlistAPI(userId);
+  
+      // Enviar la respuesta con la lista de deseos
+      sendJsonResponse(res, 200, { wishlist });
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      // Enviar respuesta de error
+      sendJsonResponse(res, 500, { message: error.message });
     }
   };
+  
 
+// Buscar actores por nombre
+controller.searchActorsByName = async (req, res) => {
+  try {
+    // Obtener el nombre del actor desde los parámetros de la URL
+    const actorName = req.params.actorName;
 
-  controller.searchActorsByName = async (req, res, next) => {
-    try {
-      const { actorName } = req.params;
-  
-      // Llama a la función para buscar actores por nombre desde el servicio de películas
-      const actors = await MoviesService.searchActorsByNameAPI(actorName);
-  
-      if (!actors || actors.length === 0) {
-        throw httpError(404, "No se encontraron actores con el nombre especificado.");
-      }
-  
-      res.status(200).json({ actors: actors });
-  
-    } catch (error) {
-      next(error);
+    // Llamar al servicio para buscar actores por nombre
+    const actors = await MoviesService.searchActorsByNameAPI(actorName);
+
+    if (!actors || actors.length === 0) {
+      return sendJsonResponse(res, 404, { error: "No se encontraron actores con el nombre especificado." });
     }
-  };
 
+    // Enviar los actores encontrados como respuesta
+    sendJsonResponse(res, 200, { actors });
+  } catch (error) {
+    // Enviar respuesta de error
+    sendJsonResponse(res, 500, { error: error.message });
+  }
+};
 
-  controller.getUserRatingsForMovie = async (req, res, next) => {
-    try {
-      const { movieId } = req.params;
-      const userId = req.user._id; // Asumiendo que el middleware de autenticación añade el usuario a la solicitud
-  
-      // Obtener la calificación del usuario actual para la película con movieId
-      const userRating = await moviesServices.getUserRatingsForMovieAPI(userId, movieId);
-  
-      if (userRating) {
-        // Devolver la calificación del usuario como respuesta
-        res.status(200).json({ userRating });
-      } else {
-        // Si no se encuentra la calificación, devolver un 404
-        res.status(404).json({ message: "No rating found for the specified movie." });
-      }
-    } catch (error) {
-      next(error);
+// Obtener calificación del usuario para una película específica
+controller.getUserRatingsForMovie = async (req, res) => {
+  try {
+    // Obtener el ID de la película desde los parámetros de la URL y el ID del usuario autenticado
+    const movieId = req.params.movieId;
+    const userId = req.user._id;
+
+    // Obtener la calificación del usuario para la película especificada
+    const userRating = await movieServices.getUserRatingsForMovieAPI(userId, movieId);
+
+    if (userRating) {
+      // Enviar la calificación del usuario como respuesta
+      sendJsonResponse(res, 200, { userRating });
+    } else {
+      // Enviar un error 404 si no se encuentra la calificación
+      sendJsonResponse(res, 404, { message: "No rating found for the specified movie." });
     }
-  };
+  } catch (error) {
+    // Enviar respuesta de error
+    sendJsonResponse(res, 500, { error: error.message });
+  }
+};
+
 
 module.exports = controller;
-
