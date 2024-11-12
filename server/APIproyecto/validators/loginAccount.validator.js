@@ -1,22 +1,16 @@
-const { body } = require("express-validator");
-const validators = {};
 
-let passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.{8,32})/;
+function loginAccountValidator(data) {
+  const errors = [];
 
-validators.loginAccountValidator = [
- 
+  if (!data.email) {
+    errors.push({ field: "email", message: "Debes de completar el campo" });
+  }
 
-  body("email")
-    .notEmpty()
-    .withMessage("Debes de completar el campo"),
-   
+  if (!data.password) {
+    errors.push({ field: "password", message: "Debes de completar el campo" });
+  }
 
-  body("password")
-    .notEmpty()
-    .withMessage("Debes de completar el campo")
-   
+  return errors;
+}
 
-
-];
-
-module.exports = validators;
+module.exports = { loginAccountValidator };

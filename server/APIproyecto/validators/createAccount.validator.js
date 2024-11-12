@@ -1,56 +1,52 @@
-const { body } = require("express-validator");
-const validators = {};
+const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.{8,32})/;
 
-let passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.{8,32})/;
+function createAccountValidator(data) {
+  const errors = [];
 
-validators.createAccountValidator = [
-  body("username")
-    .notEmpty()
-    .withMessage("Debes de completar el campo")
-    .isLength({ min: 2, max: 15 }),
+  if (!data.username || data.username.length < 2 || data.username.length > 15) {
+    errors.push({ field: "username", message: "El campo 'username' debe tener entre 2 y 15 caracteres." });
+  }
 
-  body("email")
-    .notEmpty()
-    .withMessage("Debes de completar el campo")
-    .isEmail()
-    .withMessage("Correo electronico incorrecto")
-    .isLength({ min: 5, max: 35 })
-    .withMessage("Tiene que tener como minimo 5 caracteres"),
+  if (!data.email) {
+    errors.push({ field: "email", message: "Debes de completar el campo" });
+  } else if (!/\S+@\S+\.\S+/.test(data.email) || data.email.length < 5 || data.email.length > 35) {
+    errors.push({ field: "email", message: "Correo electrónico incorrecto o longitud inválida." });
+  }
 
-  body("password")
-    .notEmpty()
-    .withMessage("Debes de completar el campo")
-    .matches(passRegex)
-    .withMessage(
-      "Tiene que contenener al menos ocho caracteres, incluido al menos un número, e incluye letras mayúsculas y minúsculas y caracteres especiales"
-    ),
+  if (!data.password) {
+    errors.push({ field: "password", message: "Debes de completar el campo" });
+  } else if (!passRegex.test(data.password)) {
+    errors.push({
+      field: "password",
+      message: "Debe tener al menos 8 caracteres, incluyendo números, mayúsculas, minúsculas y caracteres especiales."
+    });
+  }
 
-  body("year_nac")
-    .notEmpty()
-    .withMessage("Debes de completar el campo")
-    .withMessage("no es fecha valida")
-    .custom((value, { req }) => {
-      const birthDate = new Date(value);
-      const twelveYearsAgo = new Date();
-      twelveYearsAgo.setFullYear(twelveYearsAgo.getFullYear() - 12);
+  if (!data.year_nac) {
+    errors.push({ field: "year_nac", message: "Debes de completar el campo" });
+  } else {
+    const birthDate = new Date(data.year_nac);
+    const twelveYearsAgo = new Date();
+    twelveYearsAgo.setFullYear(twelveYearsAgo.getFullYear() - 12);
 
-      if (birthDate > twelveYearsAgo) {
-          throw new Error("Debes tener al menos 12 años de edad.");
-      }
+    if (birthDate > twelveYearsAgo) {
+      errors.push({ field: "year_nac", message: "Debes tener al menos 12 años de edad." });
+    }
+  }
 
-      return true;
-  }),
+  if (!data.genere || data.genere.length < 2 || data.genere.length > 15) {
+    errors.push({ field: "genere", message: "El campo 'genere' debe tener entre 2 y 15 caracteres." });
+  }
 
-  body("genere")
-    .notEmpty()
-    .withMessage("Debes de completar el campo")
-    .isLength({ min: 2, max: 15 }),
+  if (!data.movie_genere || data.movie_genere.length < 3) {
+    errors.push({ field: "movie_genere", message: "Debes seleccionar al menos 3 géneros de películas." });
+  }
 
-  body("movie_genere")
-    .notEmpty()
-    .withMessage("Debes seleccionar almenos 3 generos de peliculas"),
+  if (!data.avatar) {
+    errors.push({ field: "avatar", message: "Debes de elegir un avatar" });
+  }
 
-  body("avatar").notEmpty().withMessage("Debes de elegir un avatar"),
-];
+  return errors;
+}
 
-module.exports = validators;
+module.exports = { createAccountValidator };
