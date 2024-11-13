@@ -67,10 +67,14 @@ controller.postComment = async (req, res) => {
 controller.getComments = async (req, res) => {
   try {
     const movieId = req.params.id;
-    const parentId = req.query.parentId;
-    const commentsQuery = parentId ? { movieId, parentId } : { movieId, parentId: null };
+    const parentId = req.params.parentId || null; // Usa `req.params.parentId`
+    
+    const commentsQuery = { movieId, parentId }; // Construye el objeto de consulta
 
-    const comments = await commentUser.find(commentsQuery).populate("userId", "username avatar").sort({ createdAt: -1 });
+    const comments = await commentUser
+      .find(commentsQuery)
+      .populate("userId", "username avatar")
+      .sort({ createdAt: -1 });
 
     const formattedComments = comments.map(comment => ({
       ...comment.toObject(),
@@ -83,6 +87,8 @@ controller.getComments = async (req, res) => {
     sendJsonResponse(res, 500, { error: error.message });
   }
 };
+
+
 
 // Obtener nuevos comentarios
 controller.pollComments = async (req, res) => {

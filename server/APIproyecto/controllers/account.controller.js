@@ -93,32 +93,31 @@ controller.login = async (req, res) => {
   }
 };
 
-controller.logout = async (req, res, next) => {
+controller.logout = async (req, res) => {
   try {
     const token = req.headers.authorization.split(" ")[1];
     const payload = await verifyToken(token);
 
     if (!payload) {
-      throw httpError(401, "Token inválido o expirado");
+      return sendJsonResponse(res, 401, { error: "Token inválido o expirado" });
     }
 
     const userId = payload.sub;
     const user = await User.findById(userId);
 
     if (!user) {
-      throw httpError(404, "Usuario no encontrado");
+      return sendJsonResponse(res, 404, { error: "Usuario no encontrado" });
     }
 
     // Eliminar el token de la lista de tokens del usuario
     user.tokens = user.tokens.filter(t => t !== token);
-
     await user.save();
 
-    return res.status(200).json({
+    return sendJsonResponse(res, 200, {
       message: 'Se ha cerrado sesión correctamente'
     });
   } catch (error) {
-    next(error);
+    return sendJsonResponse(res, 500, { error: error.message });
   }
 };
 

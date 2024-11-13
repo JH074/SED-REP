@@ -93,6 +93,9 @@ fun descripcionPeli(
 
     val averageRating by viewModel.averageRatingState.collectAsState()
     val averageRatingForUser by viewModel.averageRatingForUserState.collectAsState()
+
+    val averageRatingProm by viewModel.moviesReatedState.collectAsState()
+
     LaunchedEffect(addScreenState.value) {
         when (addScreenState.value) {
             is UiState.Error -> {

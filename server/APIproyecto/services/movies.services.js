@@ -626,6 +626,36 @@ const getRatedMovies = async (userId) => {
     }
   };
   
+  const getMovieAverageRating = async (movieId) => {
+    try {
+      // Encuentra todos los usuarios que han calificado esta película
+      const users = await User.find({ 'ratings.movieId': movieId });
+  
+      // Recoge la calificación más reciente de cada usuario para esta película
+      const latestRatings = users.flatMap(user => {
+        const ratingsForMovie = user.ratings.filter(r => r.movieId === movieId);
+        if (ratingsForMovie.length > 0) {
+          // Obtener la calificación más reciente
+          const latestRating = ratingsForMovie[ratingsForMovie.length - 1].rating;
+          return [latestRating];
+        }
+        return [];
+      });
+  
+      // Verificar si hay calificaciones
+      if (latestRatings.length === 0) {
+        return null; // No hay calificaciones para esta película
+      }
+  
+      // Calcula el promedio de las calificaciones
+      const averageRating = latestRatings.reduce((sum, rating) => sum + rating, 0) / latestRatings.length;
+      console.log(`Average rating calculated: ${averageRating}`);
+
+      return averageRating;
+    } catch (error) {
+      throw new Error("Error occurred while calculating the average rating.");
+    }
+  };
 
 // se exportan como se deven son variables por asi asi
 module.exports={
@@ -642,5 +672,6 @@ module.exports={
   getRatedMoviesAPI:getRatedMovies,
   hideMovieAPI: hideMovie,
   searchActorsByNameAPI:searchActorsByName,
-  getUserRatingsForMovieAPI:getUserRatingsForMovie
+  getUserRatingsForMovieAPI:getUserRatingsForMovie,
+  getMovieAverageRatingAPI:getMovieAverageRating
 }
