@@ -162,7 +162,7 @@ interface Methods {
     ): Response<RatingResponse>
 
     @Headers("Content-Type: application/json")
-    @GET("api/movies/moviesId/{movieId}/average-rating")
+    @GET("api/movies/moviesId/{movieId}/rating-average")
     suspend fun getMovieAverageRating(
         @Header("Authorization") authorization: String,
         @Path("movieId") movieId: Int

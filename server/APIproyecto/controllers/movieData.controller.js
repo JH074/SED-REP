@@ -273,48 +273,38 @@ controller.getMovieById = async (req, res) => {
 // Obtener promedio de calificación de una película
 controller.getMovieAverageRating = async (req, res) => {
   try {
-    const userId = req.user._id; // Asegúrate de que la autenticación agrega req.user correctamente
-
-    // Buscar al usuario en la base de datos
-    const user = await User.findById(userId);
-    if (!user) {
-      return sendJsonResponse(res, 404, { error: 'Usuario no encontrado' });
-    }
-
     const { movieId } = req.params;
-    console.log(`Buscando calificaciones para la película con ID: ${movieId}`);
 
-    // Buscar todos los usuarios que han calificado esta película
+    // Encuentra todos los usuarios que han calificado esta película
     const users = await User.find({ 'ratings.movieId': movieId });
-    console.log(`Usuarios encontrados: ${users.length}`);
 
-    // Recoger la calificación más reciente de cada usuario para la película
+    // Recoge la calificación más reciente de cada usuario para esta película
     const latestRatings = users.flatMap(user => {
       const ratingsForMovie = user.ratings.filter(r => r.movieId === movieId);
       if (ratingsForMovie.length > 0) {
-        // Obtener la calificación más reciente
         const latestRating = ratingsForMovie[ratingsForMovie.length - 1].rating;
         return [latestRating];
       }
       return [];
     });
 
-    // Verificar si hay calificaciones disponibles
+    // Verificar si hay calificaciones
     if (latestRatings.length === 0) {
       return sendJsonResponse(res, 404, { message: 'No hay calificaciones para esta película' });
     }
 
-    // Calcular el promedio de las calificaciones más recientes
+    // Calcula el promedio de las calificaciones
     const averageRating = latestRatings.reduce((sum, rating) => sum + rating, 0) / latestRatings.length;
-    console.log(`Promedio de calificaciones: ${averageRating}`);
+    console.log(`Average rating calculated: ${averageRating}`);
 
-    // Devolver el promedio de calificación
-    sendJsonResponse(res, 200, { averageRating });
+    // Devuelve solo el promedio de calificación
+    return sendJsonResponse(res, 200, { averageRating });
   } catch (error) {
     console.error("Error en getMovieAverageRating:", error.message);
     sendJsonResponse(res, 500, { error: "Error al obtener el promedio de calificación de la película" });
   }
 };
+
 
 
 
@@ -467,7 +457,7 @@ controller.searchActorsByName = async (req, res) => {
     const actorName = req.params.actorName;
 
     // Llamar al servicio para buscar actores por nombre
-    const actors = await MoviesService.searchActorsByNameAPI(actorName);
+    const actors = await moviesServices.searchActorsByNameAPI(actorName);
 
     if (!actors || actors.length === 0) {
       return sendJsonResponse(res, 404, { error: "No se encontraron actores con el nombre especificado." });
@@ -501,6 +491,27 @@ controller.getUserRatingsForMovie = async (req, res) => {
   } catch (error) {
     // Enviar respuesta de error
     sendJsonResponse(res, 500, { error: error.message });
+  }
+};
+
+controller.getAverageRatingForMovie = async (req, res) => {
+  try {
+    const { movieId } = req.params; // Capturamos el ID de la película desde los parámetros de la URL
+
+    // Usamos el servicio para obtener el promedio de calificaciones
+    const averageRating = await movieServices.getMovieAverageRatingAPI(movieId);
+
+    // Si no hay calificaciones, enviamos un mensaje de respuesta
+    if (averageRating === null) {
+      return sendJsonResponse(res, 404, { message: 'No hay calificaciones para esta película' });
+    }
+    console.log(`Average rating calculated: ${averageRating}`);
+
+    // Enviamos solo el promedio de calificación en la respuesta
+    return sendJsonResponse(res, 200, { averageRating });
+  } catch (error) {
+    console.error("Error en getAverageRatingForMovie:", error.message);
+    sendJsonResponse(res, 500, { error: "Error al obtener el promedio de calificación de la película" });
   }
 };
 
