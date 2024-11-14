@@ -1213,7 +1213,7 @@ class userCreateViewModel(
 
                 try {
                     _getMovieCreate.value = GetMovieCreate.Loading
-                    val response = apiServer.methods.getMovieCreate()
+                    val response = apiServer.methods.getMovieCreate("Bearer $token")
                     if (response.isSuccessful) {
                         val userData = response.body()
                         _getMovieCreate.value = userData?.let { GetMovieCreate.Success(it) }

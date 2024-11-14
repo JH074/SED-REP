@@ -1,3 +1,4 @@
+// routes/users.router.js
 const AccountController = require("../controllers/account.controller");
 const movieController = require("../controllers/movieData.controller");
 const userLoginController = require("../controllers/userLogin.controller");
@@ -5,79 +6,87 @@ const authenticate = require("../middlewares/authorization.middlewares");
 const notificationController = require("../controllers/commentUser.controller");
 const { sendJsonResponse } = require('../utils/http.helpers');
 
-// Función para verificar si el usuario es administrador
-async function isAuthenticatedAndAdmin(req, res) {
-  if (!(await authenticate(req, res))) return false;
-  return req.user && req.user.role === 'admin';
-}
-
-async function userRouter(req, res) {
-  const urlParts = req.url.split('/').filter(Boolean);
-  const method = req.method;
-
-  // Log para ver las rutas y métodos
-  console.log(`userRouter - Method: ${method}, URL: ${req.url}`);
-
-  // Rutas de usuario estándar
-  if (method === 'POST' && req.url === '/register') {
-    return await AccountController.register(req, res);
-
-  } else if (method === 'POST' && req.url === '/login') {
-    return await AccountController.login(req, res);
-
-  } else if (method === 'POST' && req.url === '/logout') {
+const routes = {
+  'POST /register': async (req, res) => await AccountController.register(req, res),
+  'POST /login': async (req, res) => await AccountController.login(req, res),
+  'POST /logout': async (req, res) => {
     if (!(await authenticate(req, res))) return;
     return await AccountController.logout(req, res);
-
-  // Ruta específica de usuario para datos de usuario en /user/home
-  } else if (method === 'GET' && req.url === '/user/home') {
-    if (!(await authenticate(req, res))) return;
-    if (req.user.role === 'admin') {
-      // Si el usuario es administrador, redirigir a la página de administrador
-      return await movieController.getAllMovies(req, res);
-    } else {
-      // Si el usuario es estándar, redirigir a la página de usuario
-      return await userLoginController.getUserData(req, res);
-    }
-
-  // Ruta de notificaciones de usuario
-  } else if (method === 'GET' && req.url === '/user/notifications') {
+  },
+  'GET /user/home': async (req, res) => {
+    if (!(await authenticate(req, res, ['user', 'admin']))) return;
+    return await userLoginController.getUserData(req, res);
+  },
+  'GET /user/admin/home': async (req, res) => {
+    if (!(await authenticate(req, res, ['user', 'admin']))) return;
+    return await movieController.getAllMovies(req, res);
+  },
+  'GET /user/notifications': async (req, res) => {
     if (!(await authenticate(req, res))) return;
     return await notificationController.getNotifications(req, res);
-
-  // Ruta para marcar notificación como leída
-  } else if (method === 'PATCH' && urlParts[0] === 'user' && urlParts[1] === 'notifications' && urlParts[2]) {
+  },
+  'PATCH /user/notifications/:id': async (req, res) => {
     if (!(await authenticate(req, res))) return;
-    req.params = { id: urlParts[2] };
+    req.params = { id: req.url.split('/')[2] };
     return await notificationController.markAsRead(req, res);
-
-  // Rutas de administrador
-  } else if (method === 'POST' && req.url === '/user/admin/home/movies') {
-    if (!(await isAuthenticatedAndAdmin(req, res))) return;
+  },
+  'POST /user/admin/home/movies': async (req, res) => {
+    if (!(await authenticate(req, res, 'admin'))) return;
     return await movieController.movieData(req, res);
-
-  } else if (method === 'DELETE' && urlParts[0] === 'user' && urlParts[2] === 'home' && urlParts[3] === 'movies' && urlParts[4]) {
-    if (!(await isAuthenticatedAndAdmin(req, res))) return;
-    req.params = { id: urlParts[4] };
+  },
+  'DELETE /user/admin/home/movies/:id': async (req, res) => {
+    if (!(await authenticate(req, res, 'admin'))) return;
+    req.params = { id: req.url.split('/')[4] };
     return await movieController.deleteMovie(req, res);
-
-  } else if (method === 'GET' && urlParts[0] === 'user' && urlParts[2] === 'home' && urlParts[3]) {
-    if (!(await isAuthenticatedAndAdmin(req, res))) return;
-    req.params = { id: urlParts[3] };
+  },
+  'GET /user/admin/home/:id': async (req, res) => {
+    if (!(await authenticate(req, res, 'admin'))) return;
     return await movieController.getMovieByAdminId(req, res);
-
-  } else if (method === 'GET' && urlParts[0] === 'user' && urlParts[2] === 'home' && urlParts[4] === 'actors' && urlParts[5] === 'search' && urlParts[6]) {
-    if (!(await isAuthenticatedAndAdmin(req, res))) return;
-    req.params = { actorName: urlParts[6] };
+  },
+  'GET /user/home/movies/actors/search/:actorName': async (req, res) => {
+    if (!(await authenticate(req, res, 'admin'))) return;
+    req.params = { actorName: req.url.split('/')[6] };
     return await movieController.searchActorsByName(req, res);
+  }
+};
 
-  } else if (method === 'GET' && req.url === '/user/admin/home') {
-    if (!(await isAuthenticatedAndAdmin(req, res))) return;
-    return await movieController.getAllMovies(req, res);
+async function userRouter(req, res) {
+  const urlParts = req.url.split('?')[0].split('/').filter(Boolean); // Dividir y limpiar la URL
+  const method = req.method;
+  let matchedRoute = null;
+  let params = {};
+
+  // Búsqueda de rutas
+  for (const route in routes) {
+    const [routeMethod, routePath] = route.split(' ');
+    if (routeMethod !== method) continue;
+
+    const routeParts = routePath.split('/').filter(Boolean);
+
+    if (routeParts.length !== urlParts.length) continue;
+
+    let match = true;
+    routeParts.forEach((part, index) => {
+      if (part.startsWith(':')) {
+        params[part.slice(1)] = urlParts[index];
+      } else if (part !== urlParts[index]) {
+        match = false;
+      }
+    });
+
+    if (match) {
+      matchedRoute = routes[route];
+      break;
+    }
   }
 
-  // Ruta no encontrada
-  sendJsonResponse(res, 404, { error: 'Ruta no encontrada' });
+  if (matchedRoute) {
+    req.params = params; // Asigna los parámetros extraídos de la URL
+    await matchedRoute(req, res);
+  } else {
+    sendJsonResponse(res, 404, { error: 'Ruta no encontrada' });
+  }
 }
+
 
 module.exports = userRouter;

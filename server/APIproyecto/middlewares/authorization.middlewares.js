@@ -1,8 +1,9 @@
+// middlewares/authorization.middlewares.js
 const { verifyToken } = require('../utils/jwl.tools');
 const User = require('../models/account.model');
 const { sendJsonResponse } = require('../utils/http.helpers');
 
-const authenticate = async (req, res) => {
+const authenticate = async (req, res, requiredRoles = []) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -20,15 +21,16 @@ const authenticate = async (req, res) => {
       return sendJsonResponse(res, 401, { error: 'Usuario no encontrado' });
     }
 
-    // Si quieres habilitar la verificación de roles, puedes descomentar esto:
-    // if (user.role !== 'admin') {
-    //     return sendJsonResponse(res, 403, { error: 'Acceso denegado. Permiso de administrador requerido.' });
-    // }
+    // Verificación de roles permitidos
+    if (requiredRoles.length && !requiredRoles.includes(user.role)) {
+      return sendJsonResponse(res, 403, { error: 'No tiene permisos para acceder a esta ruta' });
+    }
 
-    req.user = user;
-    return true; // Para indicar que la autenticación fue exitosa
+    req.user = user; // Asignación de usuario autenticado en `req.user`
+    return true; // Indicar que la autenticación fue exitosa
   } catch (error) {
     sendJsonResponse(res, 500, { error: error.message });
+    return false;
   }
 };
 

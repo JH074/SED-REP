@@ -10,6 +10,10 @@ async function parseRequestBody(req) {
 }
 
 function sendJsonResponse(res, statusCode, data) {
+  if (!res || typeof res.writeHead !== "function" || typeof res.end !== "function") {
+    console.error("Error: Response object is not valid.");
+    return;
+  }
   res.writeHead(statusCode, { "Content-Type": "application/json" });
   res.end(JSON.stringify(data));
 }

@@ -640,69 +640,6 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
 
                     else {
 
-                        //PELICULAS CREADAS POR ADMIn
-//                        when (getMovieCreateState) {
-//                            is GetMovieCreate.Success -> {
-//                                val movies =
-//                                    (getMovieCreateState as GetMovieCreate.Success).data.data
-//                                Column {
-//                                    Text(
-//                                        text = "Peliculas creadas para ti",
-//                                        style = TextStyle(
-//                                            color = Color.White,
-//                                            textAlign = TextAlign.Start,
-//                                            fontFamily = montserratFamily,
-//                                            fontWeight = FontWeight.Medium,
-//                                            fontSize = 20.sp
-//                                        ),
-//                                        modifier = Modifier.padding(8.dp)
-//                                    )
-//
-//                                    LazyRow {
-//                                        items(movies.size) { index ->
-//                                            val movie = movies[index]
-//                                            Box(
-//                                                modifier = Modifier
-//                                                    .padding(4.dp)
-//                                                    .clickable {
-//                                                        // Aquí navegas a la pantalla de descripción de la película
-//                                                        navController.navigate(route = screenRoute.descripcionPeli2.route + "/${movie.id}")
-//                                                    }
-//                                            )
-//                                            {
-//                                                AsyncImage(
-//                                                    model = movie.coverPhoto,
-//                                                    contentDescription = null,
-//                                                    modifier = Modifier
-//                                                        .padding(4.dp)
-//                                                        .height(200.dp)
-//                                                        .width(150.dp)
-//                                                )
-//                                            }
-//                                        }
-//                                    }
-//                                }
-//                            }
-//
-//                            is GetMovieCreate.Loading -> {
-//                                // Aquí puedes mostrar un diálogo de carga o un indicador de progreso
-//                                LoadingProgressDialog()
-//                            }
-//
-//                            is GetMovieCreate.Error -> {
-//                                // Aquí puedes manejar el estado de error
-//                                Text(
-//                                    text = "Error: ${(getMovieCreateState as GetMovieCreate.Error).errorMessage}",
-//                                    color = Color.Red,
-//                                    modifier = Modifier.padding(8.dp)
-//                                )
-//                            }
-//
-//                            is GetMovieCreate.Ready -> {
-//                                // Aquí puedes manejar el estado de preparación inicial si es necesario
-//                            }
-//                        }
-
 
 
                         when (userDataState) {
