@@ -92,23 +92,23 @@ controller.deleteMovie = async (req, res) => {
   }
 };
 
-controller.getMovieByAdminId = async (req, res, next) => {
+controller.getMovieByAdminId = async (req, res) => {
   try {
-    const { id } = req.params; // Obtener el ID de la película a obtener
+    const { id } = req.params; // Obtener el ID de la película
 
     // Buscar la película por su campo id (auto-incremental)
     const movie = await Movie.findOne({ id: parseInt(id, 10) });
 
     // Verificar si la película existe
     if (!movie) {
-      throw httpError(404, 'Película no encontrada');
+      return sendJsonResponse(res, 404, { error: 'Película no encontrada' });
     }
 
     // Respuesta exitosa con los datos de la película
-    res.status(200).json(movie);
+    sendJsonResponse(res, 200, movie);
   } catch (error) {
-    // Manejar errores y pasar al siguiente middleware de error
-    next(error);
+    // Manejar errores de forma directa
+    sendJsonResponse(res, 500, { error: error.message });
   }
 };
 
@@ -457,7 +457,7 @@ controller.searchActorsByName = async (req, res) => {
     const actorName = req.params.actorName;
 
     // Llamar al servicio para buscar actores por nombre
-    const actors = await moviesServices.searchActorsByNameAPI(actorName);
+    const actors = await movieServices.searchActorsByNameAPI(actorName);
 
     if (!actors || actors.length === 0) {
       return sendJsonResponse(res, 404, { error: "No se encontraron actores con el nombre especificado." });

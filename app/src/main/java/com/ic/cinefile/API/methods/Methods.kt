@@ -222,7 +222,7 @@ interface Methods {
     @Headers(value=["Content-Type:application/json"])
     @GET("api/account/user/admin/home")
     suspend fun getMovieCreate(
-
+        @Header("Authorization") authorization: String,
         ): Response<movieResponseAdminResponse>
 
 
@@ -233,7 +233,7 @@ interface Methods {
         @Path("id") movieId: Int
     ): Response<MovieAdmin>
 
-    @GET("api/account/user/admin/home/movies/actors/search/{actorName}")
+    @GET("api/account/user/home/movies/actors/search/{actorName}")
     suspend fun searchActorsByName(
         @Header("Authorization") authorization: String,
         @Path("actorName") actorName: String

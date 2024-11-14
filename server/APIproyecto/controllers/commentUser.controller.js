@@ -66,18 +66,42 @@ controller.postComment = async (req, res) => {
 // Obtener comentarios y respuestas
 controller.getComments = async (req, res) => {
   try {
-    const movieId = req.params.id;
-    const parentId = req.params.parentId || null; // Usa `req.params.parentId`
-    
-    const commentsQuery = { movieId, parentId }; // Construye el objeto de consulta
+    const movieId = Number(req.params.movieId); // Asegúrate de que sea un número
 
-    const comments = await commentUser
-      .find(commentsQuery)
+    // Buscar comentarios principales (sin `parentId`) de la película
+    const mainComments = await commentUser
+      .find({ movieId, parentId: null })
       .populate("userId", "username avatar")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean(); // Usa `lean()` para trabajar con objetos JS simples
 
-    const formattedComments = comments.map(comment => ({
-      ...comment.toObject(),
+    // Buscar todas las respuestas (comentarios con `parentId`) para esta película
+    const replies = await commentUser
+      .find({ movieId, parentId: { $ne: null } })
+      .populate("userId", "username avatar")
+      .sort({ createdAt: 1 })
+      .lean();
+
+    // Agrupar respuestas dentro de su comentario principal correspondiente
+    const commentMap = mainComments.map(comment => ({
+      ...comment,
+      replies: []
+    }));
+
+    replies.forEach(reply => {
+      const parentComment = commentMap.find(comment => comment._id.equals(reply.parentId));
+      if (parentComment) {
+        parentComment.replies.push({
+          ...reply,
+          createdAt: moment(reply.createdAt).tz("America/El_Salvador").format("YYYY-MM-DD HH:mm:ss"),
+          updatedAt: moment(reply.updatedAt).tz("America/El_Salvador").format("YYYY-MM-DD HH:mm:ss"),
+        });
+      }
+    });
+
+    // Formatear fechas de los comentarios principales
+    const formattedComments = commentMap.map(comment => ({
+      ...comment,
       createdAt: moment(comment.createdAt).tz("America/El_Salvador").format("YYYY-MM-DD HH:mm:ss"),
       updatedAt: moment(comment.updatedAt).tz("America/El_Salvador").format("YYYY-MM-DD HH:mm:ss"),
     }));
@@ -87,6 +111,7 @@ controller.getComments = async (req, res) => {
     sendJsonResponse(res, 500, { error: error.message });
   }
 };
+
 
 
 
@@ -119,10 +144,11 @@ controller.pollComments = async (req, res) => {
 };
 
 // Obtener respuestas a un comentario específico
+// Obtener respuestas a un comentario específico
 controller.getRepliesToComment = async (req, res) => {
   try {
-    // Obtenemos los parámetros `id` y `parentId` de la URL
-    const movieId = req.params.id;
+    // Convierte `movieId` a número para asegurar que coincide con el tipo de dato en la base de datos
+    const movieId = Number(req.params.movieId);
     const parentId = req.params.parentId;
 
     // Buscamos las respuestas al comentario específico
@@ -143,6 +169,7 @@ controller.getRepliesToComment = async (req, res) => {
     sendJsonResponse(res, 500, { error: error.message });
   }
 };
+
 
 // Obtener notificaciones de usuario
 controller.getNotifications = async (req, res) => {
