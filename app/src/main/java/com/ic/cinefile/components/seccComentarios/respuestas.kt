@@ -23,10 +23,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ic.cinefile.ui.theme.dark_red
 import com.ic.cinefile.ui.theme.white
-import com.ic.cinefile.viewModel.userCreateViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
 

@@ -91,6 +91,8 @@ fun Buscador(viewModel: userCreateViewModel, navController: NavController) {
 
     var searchHistory by remember { mutableStateOf(listOf<String>()) }
 
+    // Validación de la entrada
+    val sanitizedBuscador = buscador.filter { it.isLetterOrDigit() || it.isWhitespace() }.take(50)
 
     val context = LocalContext.current
     val addScreenState = viewModel.uiState.collectAsState()
@@ -124,9 +126,6 @@ fun Buscador(viewModel: userCreateViewModel, navController: NavController) {
         viewModel.getRecentMoviesData() // Llama a getUserData para obtener la información del usuario
         viewModel.getMostViewMoviesData()
     }
-
-
-
 
     Scaffold(
         containerColor = Color.Black,
@@ -198,7 +197,7 @@ fun Buscador(viewModel: userCreateViewModel, navController: NavController) {
                                 isSearching = true
                                 focusManager.clearFocus() // Liberar el enfoque del TextField y cerrar el teclado
                                 keyboardController?.hide() // Cerrar el teclado si está visible
-                                navController.navigate("${screenRoute.ResultadoBuscador.route}/$buscador")
+                                navController.navigate("${screenRoute.ResultadoBuscador.route}/$sanitizedBuscador")
 
                             }
                         ),

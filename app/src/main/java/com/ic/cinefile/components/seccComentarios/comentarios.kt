@@ -5,7 +5,6 @@ import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -40,7 +39,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -50,25 +48,21 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ic.cinefile.R
-import com.ic.cinefile.data.accountLoginData
 import com.ic.cinefile.data.commentData
 import com.ic.cinefile.screens.getAvatarResource
 import com.ic.cinefile.ui.theme.grisComment
 import com.ic.cinefile.ui.theme.white
 import com.ic.cinefile.viewModel.CommentListState
-import com.ic.cinefile.viewModel.CommentPostState
 import com.ic.cinefile.viewModel.UiState
 import com.ic.cinefile.viewModel.UserDataState
+import com.ic.cinefile.viewModel.UserPreferences
 import com.ic.cinefile.viewModel.userCreateViewModel
-import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun comentarios(
     viewModel: userCreateViewModel,
     movieId: Int
-
-
 ) {
     //mostrar más comentarios
     var showComments by remember { mutableStateOf(false) }
@@ -88,10 +82,14 @@ fun comentarios(
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                 viewModel.setStateToReady()
             }
-            UiState.Loading -> {
 
+            UiState.Loading -> {
+                //
             }
-            UiState.Ready -> {}
+
+            UiState.Ready -> {
+                //
+            }
             is UiState.Success -> {
                 val token = (addScreenState.value as UiState.Success).token
                 viewModel.fetchUserData(token) // Llama a getUserData para obtener la información del usuario
@@ -132,7 +130,6 @@ fun comentarios(
                     contentDescription = null,
                     tint = white
                 )
-
             }
         }
 
@@ -168,7 +165,7 @@ fun comentarios(
                                     movieId = movieId,
                                     viewModel = viewModel,
                                     id = comentario.id,
-                                    parentId =comentario.parentId,
+                                    parentId = comentario.parentId,
                                     username = comentario.user.username,
                                     description = comentario.commentText,
                                     createdAt = comentario.createdAt, // Pasar fecha y hora de creación
@@ -180,6 +177,7 @@ fun comentarios(
                                 )
                             }
                         }
+
                         else -> {
                             // Manejar otros estados si es necesario
                         }
@@ -209,7 +207,11 @@ fun comentarios(
                                             .size(40.dp)
                                             .clip(CircleShape)
                                     )
-                                }else-> {}
+                                }
+
+                                else -> {
+                                    //
+                                }
                             }
                             Spacer(modifier = Modifier.width(10.dp))
 
@@ -217,7 +219,12 @@ fun comentarios(
                             TextField(
                                 modifier = Modifier.fillMaxWidth(0.9f),
                                 value = commentText,
-                                onValueChange = { commentText = it },
+                                onValueChange = { input ->
+                                    // Filtrar solo letras y espacios, además de limitar a 200 caracteres
+                                    val filteredText =
+                                        input.filter { it.isLetter() || it.isWhitespace() }
+                                    commentText = filteredText.take(200)
+                                },
                                 colors = TextFieldDefaults.colors(
                                     unfocusedContainerColor = grisComment,
                                     focusedContainerColor = grisComment,
@@ -242,12 +249,12 @@ fun comentarios(
                             IconButton(onClick = {
 
                                 val userData = commentData(
-                                    movieId=movieId,
-                                    commentText=commentText
+                                    movieId = movieId,
+                                    commentText = commentText
                                 )
 
-                                viewModel.postComment(movieId,userData)
-                                Log.d("activity","userData:$userData")
+                                viewModel.postComment(movieId, userData)
+                                Log.d("activity", "userData:$userData")
                                 commentText = ""
 
                             }
@@ -267,8 +274,9 @@ fun comentarios(
 }
 
 
-/*@Preview
+@Preview
 @Composable
 fun comentariosPreview(){
-    comentarios()
-}*/
+    val userPreferences = UserPreferences(LocalContext.current)
+    comentarios(userCreateViewModel(userPreferences), 1)
+}

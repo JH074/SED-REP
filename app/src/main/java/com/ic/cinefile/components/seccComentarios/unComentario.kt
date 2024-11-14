@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,15 +53,12 @@ import com.ic.cinefile.ui.theme.black
 import com.ic.cinefile.ui.theme.dark_red
 import com.ic.cinefile.ui.theme.grisComment
 import com.ic.cinefile.ui.theme.white
-import com.ic.cinefile.viewModel.CommentListState
 import com.ic.cinefile.viewModel.DeleteCommentState
 import com.ic.cinefile.viewModel.RepliesToCommentState
 import com.ic.cinefile.viewModel.UiState
-import com.ic.cinefile.viewModel.UserDataState
 import com.ic.cinefile.viewModel.userCreateViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
-import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -326,7 +322,12 @@ fun unComentario(
                             ) {
                                 TextField(
                                     value = commentText,
-                                    onValueChange = { commentText = it },
+                                    onValueChange = { input ->
+                                        // Filtrar solo letras y espacios, además de limitar a 200 caracteres
+                                        val filteredText =
+                                            input.filter { it.isLetter() || it.isWhitespace() }
+                                        commentText = filteredText.take(200)
+                                    },
                                     modifier = Modifier.fillMaxWidth(0.9f),
                                     placeholder = {
                                         Text(
