@@ -5,7 +5,6 @@ import android.content.Context
 import android.util.Log
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,19 +16,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.ic.cinefile.R
 import com.ic.cinefile.Navigation.screenRoute
-import com.ic.cinefile.components.LoadingProgressDialog
 import com.ic.cinefile.data.accountLoginData
 import com.ic.cinefile.ui.theme.LoadingAnimation
 import com.ic.cinefile.ui.theme.black
@@ -37,9 +32,9 @@ import com.ic.cinefile.ui.theme.white
 import com.ic.cinefile.viewModel.UiState
 import com.ic.cinefile.viewModel.userCreateViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Login(viewModel: userCreateViewModel, navController: NavController) {
+
     val context = LocalContext.current
 
     val showErrorToast by viewModel.showErrorToast.collectAsState()
@@ -55,6 +50,13 @@ fun Login(viewModel: userCreateViewModel, navController: NavController) {
     var password by remember { mutableStateOf(accountLoginData.password) }
     var passwordVisible by remember { mutableStateOf(false) } // Estado para mostrar u ocultar la contraseña
 
+    var isValid by remember { mutableStateOf(true) }
+    fun isValidEmail(email: String): Boolean {
+        // Expresión regular para validar un correo que termina en ".com"
+        val emailRegex = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.com$")
+        return emailRegex.matches(email)
+    }
+
     val addScreenState = viewModel.uiState.collectAsState()
     when (addScreenState.value) {
         is UiState.Error -> {
@@ -65,7 +67,9 @@ fun Login(viewModel: userCreateViewModel, navController: NavController) {
         UiState.Loading -> {
             LoadingAnimation() // Llamada a la animación de carga
         }
-        UiState.Ready -> {}
+        UiState.Ready -> {
+            //
+        }
         is UiState.Success -> {
             showMessage(context, "Token: ${(addScreenState.value as UiState.Success).token}")
 
@@ -98,7 +102,10 @@ fun Login(viewModel: userCreateViewModel, navController: NavController) {
 
         TextField(
             value = email,
-            onValueChange = { email = it },
+            onValueChange = {
+                email = it
+                isValid = isValidEmail(email)
+            },
             colors = TextFieldDefaults.colors(
                 unfocusedContainerColor = black,
                 focusedContainerColor = black,
@@ -128,8 +135,10 @@ fun Login(viewModel: userCreateViewModel, navController: NavController) {
             keyboardActions = KeyboardActions(
                 onDone = {
                     // Lógica cuando se presiona Done
-                },
-            )
+                    hideKeyboard(context)
+                }
+            ),
+            singleLine = true
         )
 
         Spacer(modifier = Modifier.height(15.dp))
@@ -175,8 +184,9 @@ fun Login(viewModel: userCreateViewModel, navController: NavController) {
             keyboardActions = KeyboardActions(
                 onDone = {
                     hideKeyboard(context)
-                },
+                }
             ),
+            singleLine = true
         )
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -211,7 +221,6 @@ fun Login(viewModel: userCreateViewModel, navController: NavController) {
                         )
 
                         viewModel.loginUser(userData)
-                        Log.d("activity", "userData:$userData")
 
                     } else {
                         Toast.makeText(context, "Formato de correo incorrecto", Toast.LENGTH_SHORT)
