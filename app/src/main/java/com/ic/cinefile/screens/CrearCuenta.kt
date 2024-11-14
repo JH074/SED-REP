@@ -1,7 +1,6 @@
 package com.ic.cinefile.screens
 
 import android.widget.Toast
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -12,7 +11,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
@@ -22,7 +20,6 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.ic.cinefile.Navigation.screenRoute
-import com.ic.cinefile.R
 import com.ic.cinefile.ui.theme.black
 import com.ic.cinefile.ui.theme.white
 import com.ic.cinefile.viewModel.userCreateViewModel
@@ -34,8 +31,8 @@ fun CrearCuenta(viewModel: userCreateViewModel, navController: NavController) {
     val context = LocalContext.current
 
     fun isValidEmail(email: String): Boolean {
-        val emailPattern = "^[A-Za-z0-9+_.-]+@(.+)$"
-        return Pattern.compile(emailPattern).matcher(email).matches()
+        val emailPattern = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.com$")
+        return Pattern.compile(emailPattern.toString()).matcher(email).matches()
     }
 
     fun isValidPassword(password: String): Boolean {
@@ -71,7 +68,11 @@ fun CrearCuenta(viewModel: userCreateViewModel, navController: NavController) {
         TextField(
             modifier = Modifier.width(300.dp),
             value = email,
-            onValueChange = { email = it },
+            onValueChange = {
+                if (it.length <= 15) {
+                    email = it
+                }
+            },
             colors = TextFieldDefaults.colors(
                 unfocusedContainerColor = black,
                 focusedContainerColor = black,
@@ -84,7 +85,7 @@ fun CrearCuenta(viewModel: userCreateViewModel, navController: NavController) {
             ),
             placeholder = {
                 Text(
-                    text = "Correo (ejemplo@dominio.com )",
+                    text = "Correo (ejemplo@dominio.com)",
                     style = androidx.compose.ui.text.TextStyle(
                         color = white,
                         fontSize = 16.sp,
@@ -96,6 +97,7 @@ fun CrearCuenta(viewModel: userCreateViewModel, navController: NavController) {
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
             ),
+            singleLine = true
         )
 
         Spacer(modifier = Modifier.height(15.dp))
@@ -132,7 +134,8 @@ fun CrearCuenta(viewModel: userCreateViewModel, navController: NavController) {
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password
             ),
-            visualTransformation = VisualTransformation.None // Contraseña visible
+            visualTransformation = VisualTransformation.None, // Contraseña visible
+            singleLine = true
         )
 
         Spacer(modifier = Modifier.height(16.dp))

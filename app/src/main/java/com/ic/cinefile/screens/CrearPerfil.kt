@@ -1,8 +1,5 @@
 package com.ic.cinefile.screens
 
-//import com.ic.cinefile.activities.contentGeneroActivity
-import android.app.Activity
-import android.content.Intent
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -41,36 +38,32 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.ic.cinefile.Navigation.screenRoute
-//import com.ic.cinefile.Navigation.screenRoute
-import com.ic.cinefile.data.accountRegisterData
-//import com.ic.cinefile.activities.GeneroActivity
 import com.ic.cinefile.ui.theme.black
 import com.ic.cinefile.ui.theme.dark_blue
 import com.ic.cinefile.ui.theme.white
 import com.ic.cinefile.viewModel.userCreateViewModel
+import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
 
-//import kotlin.coroutines.jvm.internal.CompletedContinuation.context
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CrearPerfil(viewModel: userCreateViewModel,navController : NavController) {
+fun CrearPerfil(viewModel: userCreateViewModel, navController: NavController) {
 
     val context = LocalContext.current
 
     val accountData by viewModel.accountcreateAPIData
     var username by remember { mutableStateOf(accountData.username) }
     var year_nac by remember { mutableStateOf(accountData.year_nac) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -99,7 +92,7 @@ fun CrearPerfil(viewModel: userCreateViewModel,navController : NavController) {
             onValueChange = {
 
                 if (username.length <= 15) { // Limitar a 15 caracteres
-                    username=it
+                    username = it
                 }
             },
             singleLine = true,
@@ -123,7 +116,7 @@ fun CrearPerfil(viewModel: userCreateViewModel,navController : NavController) {
                         fontWeight = FontWeight.Normal,
                     )
                 )
-            },
+            }
         )
 
         Spacer(modifier = Modifier.height(40.dp))
@@ -144,7 +137,6 @@ fun CrearPerfil(viewModel: userCreateViewModel,navController : NavController) {
         Spacer(modifier = Modifier.height(4.dp))
 
         val hidden: MutableState<Boolean> = remember { mutableStateOf(false) }
-        val dateResult = remember { mutableStateOf("DD/MM/YYYY") }
         val datePickerState = rememberDatePickerState(initialSelectedDateMillis = 1578096000000)
         Button(
             onClick = { hidden.value = !hidden.value },
@@ -156,66 +148,26 @@ fun CrearPerfil(viewModel: userCreateViewModel,navController : NavController) {
             ),
         ) {
             Row {
-                Text(text =year_nac, fontSize = 15.sp)
+                Text(text = year_nac, fontSize = 15.sp)
                 Spacer(modifier = Modifier.width(130.dp))
                 Icon(Icons.Filled.DateRange, contentDescription = "")
             }
         }
         if (hidden.value) {
             DatePickerDialog(
-                onDismissRequest = {
-                    hidden.value = false
-                },
+                onDismissRequest = { hidden.value = false },
                 confirmButton = {
                     TextButton(
                         onClick = {
                             hidden.value = false
-                            var date = "no selection"
-                            if (datePickerState.selectedDateMillis != null) {
-                                // Utilizamos la zona horaria UTC para evitar problemas de ajuste de días
-                                val calendar =
-                                    Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-                                        timeInMillis = datePickerState.selectedDateMillis!!
-                                    }
-                                val day = calendar.get(Calendar.DAY_OF_MONTH) - 1
-                                val month = calendar.get(Calendar.MONTH) + 1
-                                val year = calendar.get(Calendar.YEAR)
-
-                                // Validar el día según el mes
-                                val maxDay = when (month) {
-                                    4, 6, 9, 11 -> 30
-                                    2 -> if (calendar.get(Calendar.YEAR) % 4 == 0) 29 else 28
-                                    else -> 31
-                                }
-                                if (day > maxDay) {
-                                    calendar.set(Calendar.DAY_OF_MONTH, maxDay)
-                                }
-
-                                // Validar el mes
-                                if (month > 12) {
-                                    calendar.set(Calendar.MONTH, 11)
-                                }
-
-                                // Sumar 1 al día (si el día es menor que el máximo)
-                                if (day < maxDay) {
-                                    calendar.add(Calendar.DAY_OF_MONTH, 1)
-                                }
-
-                                // Validar el año con el año actual
-                                val currentYearValidation =
-                                    Calendar.getInstance().get(Calendar.YEAR)
-                                if (year > currentYearValidation) {
-                                    calendar.set(Calendar.YEAR, currentYearValidation)
-                                }
-
-                                date = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(
-                                    calendar.time
-                                )
-                            }
-                            year_nac = date
-                        },
-
-                        ) {
+                            year_nac = datePickerState.selectedDateMillis?.let { selectedDate ->
+                                val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                                calendar.timeInMillis = selectedDate
+                                val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                                sdf.format(calendar.time)
+                            } ?: "DD/MM/YYYY"
+                        }
+                    ) {
                         Text(
                             "Confirmar",
                             color = black,
@@ -223,97 +175,71 @@ fun CrearPerfil(viewModel: userCreateViewModel,navController : NavController) {
                             fontWeight = FontWeight.SemiBold
                         )
                     }
-
-                },
-
-                ) {
-
+                }
+            ) {
                 DatePicker(
                     state = datePickerState,
                     colors = DatePickerDefaults.colors(
-                        //año actual
                         currentYearContentColor = dark_blue,
-                        //año seleccionado contenedor
                         selectedYearContainerColor = dark_blue,
-                        //contenedor del a
                         selectedDayContainerColor = dark_blue,
                         todayContentColor = dark_blue,
                         todayDateBorderColor = dark_blue,
                     )
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.height(100.dp))
+            Spacer(modifier = Modifier.height(100.dp))
 
-        Button(
-            onClick = {
-                val username = username
-                val birthday = year_nac
-
-                // Validación: verificar que el nombre de usuario y la fecha de nacimiento no estén vacíos
-                if (username.isNotEmpty() && birthday != "DD/MM/YYYY") {
-                    // Parsear la fecha de nacimiento
-                    val birthDate =
-                        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(birthday)
-                    birthDate?.let {
-                        val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-                        calendar.time = birthDate
-
-                        val birthYear = calendar.get(Calendar.YEAR)
-                        val birthMonth =
-                            calendar.get(Calendar.MONTH) + 1 // Los meses en Calendar son 0-based
-                        val birthDay = calendar.get(Calendar.DAY_OF_MONTH)
-
-                        // Obtener la fecha actual
-                        val currentCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-                        val currentYear = currentCalendar.get(Calendar.YEAR)
-                        val currentMonth = currentCalendar.get(Calendar.MONTH) + 1
-                        val currentDay = currentCalendar.get(Calendar.DAY_OF_MONTH)
-
-                        // Calcular la edad
-                        var age = currentYear - birthYear
-                        if (currentMonth < birthMonth || (currentMonth == birthMonth && currentDay < birthDay)) {
-                            age--
+            Button(
+                onClick = {
+                    if (username.isNotEmpty() && year_nac != "DD/MM/YYYY") {
+                        try {
+                            val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                            val birthDate =
+                                sdf.parse(year_nac) ?: throw ParseException("Invalid date", 0)
+                            val age = Calendar.getInstance().let { current ->
+                                current[Calendar.YEAR] - Calendar.getInstance()
+                                    .apply { time = birthDate }[Calendar.YEAR]
+                            }
+                            if (age >= 12) {
+                                viewModel.updateAccountData(
+                                    accountData.copy(
+                                        username = username,
+                                        year_nac = year_nac
+                                    )
+                                )
+                                navController.navigate(screenRoute.Genero.route)
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Debes ser mayor de 12 años",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        } catch (e: ParseException) {
+                            Toast.makeText(context, "Fecha inválida", Toast.LENGTH_SHORT).show()
                         }
-
-                        // Validar la edad
-                        if (age >= 12) {
-                            viewModel.updateAccountData(accountData.copy(username=username, year_nac = year_nac ))
-                            navController.navigate(screenRoute.Genero.route)
-                            Log.d("Crear_cuenta","email:${accountData.email}")
-
-                        } else {
-                            Toast.makeText(
-                                context,
-                                "Debes ser mayor de 12 años para usar la aplicación",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
+                    } else {
+                        Toast.makeText(context, "Completa todos los campos", Toast.LENGTH_SHORT)
+                            .show()
                     }
-                } else {
-                    Toast.makeText(
-                        context,
-                        "Por favor, Completa todos los campos",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            },
-            modifier = Modifier
-                .width(300.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = white,
-                contentColor = black
-            ),
-        ) {
-            Text(
-                text = "Siguiente",
-                style = TextStyle(
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center,
+                },
+                modifier = Modifier.width(300.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = white,
+                    contentColor = black
+                ),
+            ) {
+                Text(
+                    text = "Siguiente",
+                    style = TextStyle(
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center,
+                    )
                 )
-            )
+            }
         }
     }
 }

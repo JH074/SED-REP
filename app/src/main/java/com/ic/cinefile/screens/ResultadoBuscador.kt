@@ -1,42 +1,29 @@
 package com.ic.cinefile.screens
 
 import android.widget.Toast
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import com.ic.cinefile.API.Model.movies.moviesResponse
-
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Card
@@ -52,8 +39,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -72,7 +57,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -80,24 +64,13 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.ic.cinefile.Navigation.screenRoute
 import com.ic.cinefile.R
-import com.ic.cinefile.components.seccComentarios.unComentario
-import com.ic.cinefile.ui.theme.black
-import com.ic.cinefile.ui.theme.dark_blue
 import com.ic.cinefile.ui.theme.dark_red
-import com.ic.cinefile.ui.theme.grisComment
-import com.ic.cinefile.ui.theme.light_yellow
-import com.ic.cinefile.ui.theme.montserratFamily
 import com.ic.cinefile.ui.theme.sky_blue
 import com.ic.cinefile.ui.theme.white
-import com.ic.cinefile.viewModel.AverageRatingState
-import com.ic.cinefile.viewModel.CommentListState
-import com.ic.cinefile.viewModel.MostViewsMoviestState
-import com.ic.cinefile.viewModel.RepliesToCommentState
 import com.ic.cinefile.viewModel.SearchState
 import com.ic.cinefile.viewModel.UiState
 import com.ic.cinefile.viewModel.userCreateViewModel
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun Resultadobuscador(viewModel: userCreateViewModel, navController: NavController, title: String) {
     var buscador by remember { mutableStateOf("") }
@@ -119,6 +92,9 @@ fun Resultadobuscador(viewModel: userCreateViewModel, navController: NavControll
 
     val userRole = viewModel.getUserRole()
 
+    // Validación de la entrada
+    val sanitizedBuscador = buscador.filter { it.isLetterOrDigit() || it.isWhitespace() }.take(50)
+
     LaunchedEffect(addScreenState.value) {
         when (addScreenState.value) {
             is UiState.Error -> {
@@ -131,7 +107,9 @@ fun Resultadobuscador(viewModel: userCreateViewModel, navController: NavControll
                 // Mostrar un diálogo de carga o algún indicador de progreso
             }
 
-            UiState.Ready -> {}
+            UiState.Ready -> {
+                //
+            }
             is UiState.Success -> {
                 val token = (addScreenState.value as UiState.Success).token
                 viewModel.fetchUserData(token)
@@ -243,9 +221,7 @@ fun Resultadobuscador(viewModel: userCreateViewModel, navController: NavControll
                             keyboardActions = KeyboardActions(
                                 onSearch = {
                                     isSearching = true
-
-                                    navController.navigate("${screenRoute.ResultadoBuscador.route}/$buscador")
-
+                                    navController.navigate("${screenRoute.ResultadoBuscador.route}/$sanitizedBuscador")
                                 }
                             )
                         )
@@ -299,8 +275,6 @@ fun Resultadobuscador(viewModel: userCreateViewModel, navController: NavControll
                             }
                         )
                     }
-
-
                     DropdownMenu(
                         expanded = isGenreMenuExpanded,
                         onDismissRequest = { isGenreMenuExpanded = false },
