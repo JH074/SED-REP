@@ -242,6 +242,7 @@ interface Methods {
     @Headers(value = ["Content-Type:application/json"])
     @DELETE("api/account/user/admin/home/movies/{id}")
     suspend fun deleteMovie(
+        @Header("Authorization") authorization: String,
         @Path("id") movieId: String
     ): Response<Unit>
 

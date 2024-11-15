@@ -42,7 +42,7 @@ fun CheckAuthState(viewModel: userCreateViewModel) {
 
     LaunchedEffect(authToken) {
         if (authToken != null) {
-            viewModel.fetchUserData(authToken)
+            viewModel.fetchUserData()
             val userRole = viewModel.getUserRole()
             if (userRole == "admin") {
                 navController.navigate(screenRoute.HomeAdmin.route) {

@@ -79,6 +79,7 @@ import com.ic.cinefile.ui.theme.black
 import com.ic.cinefile.ui.theme.dark_red
 import com.ic.cinefile.ui.theme.montserratFamily
 import com.ic.cinefile.ui.theme.white
+import com.ic.cinefile.viewModel.DeleteMovieState
 import com.ic.cinefile.viewModel.GetMovieCreate
 import com.ic.cinefile.viewModel.LogoutResult
 import com.ic.cinefile.viewModel.RecentMoviestState
@@ -103,18 +104,52 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
     var isLoading by remember { mutableStateOf(true) }
 
     val userRole = viewModel.getUserRole()
+    val deleteMovieState by viewModel.deleteMovieState.collectAsState()
 
+// Variable para almacenar el ID de la película seleccionada para eliminar
+    var selectedMovieId by remember { mutableStateOf<String?>(null) }
     //Modal de eliminar:
+
     val openAlertDialog = remember { mutableStateOf(false) }
+
+
+    LaunchedEffect(deleteMovieState) {
+        when (deleteMovieState) {
+            is DeleteMovieState.Success -> {
+                Toast.makeText(context, "Película eliminada exitosamente", Toast.LENGTH_SHORT).show()
+                viewModel.resetDeleteMovieState()
+                // Actualiza la lista de películas después de eliminar
+                viewModel.getMovieCreate()
+            }
+            is DeleteMovieState.Error -> {
+                val errorMessage = (deleteMovieState as DeleteMovieState.Error).errorMessage
+                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                viewModel.resetDeleteMovieState()
+            }
+            else -> { /* No hacer nada para otros estados */ }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.fetchUserData()
+    }
+
     if (openAlertDialog.value) {
         DeleteDialogAdmin(
-            //lo que hace si se da en "eliminar", logica de eliminar la peli
-            onConfirmation = { openAlertDialog.value = false },
-            //lo que hace si se le da "atrás"
-            onDismissRequest = { openAlertDialog.value = false },
+            onDismissRequest = {
+                openAlertDialog.value = false
+            },
+            onConfirmation = {
+                openAlertDialog.value = false
+                selectedMovieId?.let { movieId ->
+                    viewModel.deleteMovie(movieId)
+                }
+            },
             dialogText = ""
         )
     }
+
+
 
     LaunchedEffect(addScreenState.value) {
         when (addScreenState.value) {
@@ -123,15 +158,14 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                 viewModel.setStateToReady()
             }
-    
+
             UiState.Loading -> {
                 // Puedes agregar algún indicador de carga general aquí si es necesario
             }
 
             UiState.Ready -> {}
             is UiState.Success -> {
-                val token = (addScreenState.value as UiState.Success).token
-                viewModel.fetchUserData(token) // Llama a getUserData para obtener la información del usuario
+              // Llama a getUserData para obtener la información del usuario
                 viewModel.setStateToReady()
 
             }
@@ -367,35 +401,35 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
             })
         }) { innerPadding ->
 
-                // Insertar aquí el botón de recarga
-                if (viewModel.showReloadButton) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.6f))
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
+            // Insertar aquí el botón de recarga
+            if (viewModel.showReloadButton) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.6f))
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "¿Crees que está tardando mucho?",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { viewModel.reload() },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White)
                     ) {
                         Text(
-                            text = "¿Crees que está tardando mucho?",
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            textAlign = TextAlign.Center
+                            text = "Recargar",
+                            color = Color.Black,
+                            fontSize = 16.sp
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(
-                            onClick = { viewModel.reload() },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White)
-                        ) {
-                            Text(
-                                text = "Recargar",
-                                color = Color.Black,
-                                fontSize = 16.sp
-                            )
-                        }
                     }
                 }
+            }
 
             if (userDataState is UserDataState.Loading) {
                 LoadingAnimation()
@@ -514,7 +548,7 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
                                                 modifier = Modifier
                                                     .padding(4.dp)
                                                     .clickable {
-                                                     //   navController.navigate(route = screenRoute.descripcionPeli2.route + "/${movie.id}")
+                                                        //   navController.navigate(route = screenRoute.descripcionPeli2.route + "/${movie.id}")
                                                         navController.navigate(route = screenRoute.descripcionPeli2.route + "/${movie.id}")
 
                                                         // Aquí navegas a la pantalla de descripción de la película
@@ -530,7 +564,9 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
                                                         .width(150.dp)
                                                 )
                                                 IconButton(
-                                                    onClick = { openAlertDialog.value = true },
+                                                    onClick = {
+                                                        selectedMovieId = movie._id // Ahora 'movie.id' es un Int
+                                                        openAlertDialog.value = true},
                                                     modifier = Modifier
                                                         .align(Alignment.TopEnd)
                                                 ) {

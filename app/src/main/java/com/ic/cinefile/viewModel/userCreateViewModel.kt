@@ -175,7 +175,7 @@ class userCreateViewModel(
                 if (token != null && receivedTime != null && (currentTime - receivedTime) < oneDayInMillis) {
                     _authToken.value = token
                     userRole = userPreferences.userRole.first()
-                    fetchUserData(token)
+                    fetchUserData()
                 } else {
                     _authToken.value = null
                     userRole = null
@@ -183,6 +183,7 @@ class userCreateViewModel(
             }
         }
     }
+
 
 
 
@@ -341,7 +342,7 @@ class userCreateViewModel(
                 _uiState.value = UiState.Success(token)
 
                 // Obtener información del usuario utilizando el token
-                fetchUserData(token)
+                fetchUserData()
 
 
             } catch (e: Exception) {
@@ -372,33 +373,40 @@ class userCreateViewModel(
         _showErrorToast.value = false
     }
 
-    //manejar token
-    fun fetchUserData(token: String) {
 
+
+    //manejar token
+    fun fetchUserData() {
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                _userDataState.value = UserDataState.Loading
-                val response = apiServer.methods.getUserHome("Bearer $token")
-                if (response.isSuccessful) {
-                    val userData = response.body()
-                    _userDataState.value = userData?.let { UserDataState.Success(it) } ?: UserDataState.Error("Error: Datos del usuario no encontrados")
-                } else {
-                    _userDataState.value = UserDataState.Error("Error: ${response.message()}")
-                }
-            } catch (e: Exception) {
-                when (e) {
-                    is HttpException -> {
-                        Log.i("userCreateViewModel", e.message())
-                        _userDataState.value = UserDataState.Error(e.message())
+            _authToken.value?.let { token ->
+                try {
+                    _userDataState.value = UserDataState.Loading
+                    val response = apiServer.methods.getUserHome("Bearer $token")
+                    if (response.isSuccessful) {
+                        val userData = response.body()
+                        _userDataState.value = userData?.let { UserDataState.Success(it) }
+                            ?: UserDataState.Error("Error: Datos del usuario no encontrados")
+                    } else {
+                        _userDataState.value = UserDataState.Error("Error: ${response.message()}")
                     }
-                    else -> {
-                        Log.i("userCreateViewModel", e.message.toString())
-                        _userDataState.value = UserDataState.Error(e.message ?: "Error desconocido")
+                } catch (e: Exception) {
+                    when (e) {
+                        is HttpException -> {
+                            Log.i("userCreateViewModel", e.message())
+                            _userDataState.value = UserDataState.Error(e.message())
+                        }
+                        else -> {
+                            Log.i("userCreateViewModel", e.message.toString())
+                            _userDataState.value = UserDataState.Error(e.message ?: "Error desconocido")
+                        }
                     }
                 }
+            } ?: run {
+                _userDataState.value = UserDataState.Error("Token no disponible")
             }
         }
     }
+
 
 
 
@@ -427,7 +435,7 @@ class userCreateViewModel(
         viewModelScope.launch {
             val token = userPreferences.authToken.firstOrNull()
             if (token != null) {
-                fetchUserData(token)
+                fetchUserData()
             } else {
                 _uiState.value = UiState.Error("Token no disponible")
             }
@@ -443,7 +451,7 @@ class userCreateViewModel(
             try {
                 val token = userPreferences.authToken.firstOrNull()
                 if (token != null) {
-                    fetchUserData(token)
+                    fetchUserData()
                     _uiState.value = UiState.Success(token)
                 } else {
                     _uiState.value = UiState.Error("Token no disponible")
@@ -1288,24 +1296,43 @@ class userCreateViewModel(
     private val _deleteMovieState = MutableStateFlow<DeleteMovieState>(DeleteMovieState.Ready)
     val deleteMovieState: StateFlow<DeleteMovieState> = _deleteMovieState
 
-    fun deleteMovieById(movieId: String) {
-        viewModelScope.launch {
-            _deleteMovieState.value = DeleteMovieState.Loading
-            try {
-                val response = apiServer.methods.deleteMovie(movieId)
-                if (response.isSuccessful) {
-                    _deleteMovieState.value = DeleteMovieState.Success
-                } else {
-                    _deleteMovieState.value = DeleteMovieState.Error("Failed to delete movie: ${response.code()}")
+    fun deleteMovie(movieId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _authToken.value?.let { token ->
+                try {
+                    _deleteMovieState.value = DeleteMovieState.Loading
+                    val response = apiServer.methods.deleteMovie("Bearer $token", movieId)
+                    if (response.isSuccessful) {
+                        _deleteMovieState.value = DeleteMovieState.Success
+                    } else {
+                        val errorBody = response.errorBody()?.string()
+                        _deleteMovieState.value = DeleteMovieState.Error(
+                            "Error ${response.code()}: ${response.message()} - $errorBody"
+                        )
+                    }
+                } catch (e: Exception) {
+                    when (e) {
+                        is HttpException -> {
+                            Log.e("deleteMovie", "HttpException: ${e.message()}")
+                            _deleteMovieState.value = DeleteMovieState.Error("HttpException: ${e.message()}")
+                        }
+                        else -> {
+                            Log.e("deleteMovie", "Exception: ${e.message}", e)
+                            _deleteMovieState.value = DeleteMovieState.Error("Exception: ${e.message}")
+                        }
+                    }
                 }
-            } catch (e: Exception) {
-                _deleteMovieState.value = DeleteMovieState.Error("Error occurred: ${e.message}")
+            } ?: run {
+                _deleteMovieState.value = DeleteMovieState.Error("Authentication token not available")
             }
         }
     }
 
 
 
+    fun resetDeleteMovieState() {
+        _deleteMovieState.value = DeleteMovieState.Ready
+    }
 
     fun getMovieCreateById(movieId: Int) {
         viewModelScope.launch(Dispatchers.IO) {
