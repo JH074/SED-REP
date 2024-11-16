@@ -67,7 +67,7 @@ interface Methods {
     ): Response<Unit>
 
     @Headers("Content-Type: application/json")
-    @GET("api/account/user/home")
+    @GET("api/account/home")
     suspend fun getUserHome(
         @Header("Authorization") authorization: String
     ): Response<homeUserResponse>
@@ -220,7 +220,7 @@ interface Methods {
     ): Response<createMovieResponse>
 
     @Headers(value=["Content-Type:application/json"])
-    @GET("api/account/user/admin/home")
+    @GET("api/account/home/createMovies")
     suspend fun getMovieCreate(
         @Header("Authorization") authorization: String,
         ): Response<movieResponseAdminResponse>

@@ -169,8 +169,6 @@ const searchMovieByTitle = async (title, userId, sortBy = 'relevancia', genre = 
 
 
 
-
-
 const getGenreId = (genreName) => {
   const genreId = genreMap[genreName.toLowerCase()];
   if (!genreId) {
@@ -221,11 +219,6 @@ const getMoviesCategory = async (categoryName, limit = 10) => {
     throw new Error(`No se ha podido encontrar películas en la categoría: ${categoryName}`);
   }
 };
-
-
-
-
-
 
 
 

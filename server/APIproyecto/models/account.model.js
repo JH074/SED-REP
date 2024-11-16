@@ -1,3 +1,4 @@
+const xss = require("xss");
 const Mongoose = require("mongoose");
 const SchemaUsers = Mongoose.Schema;
 const crypto = require("crypto");
@@ -125,11 +126,25 @@ accountSchema
     this.hashedPassword = this.encryptPassword(password);
   });
 
-
+  accountSchema.pre("save", function (next) {
+    if (this.isModified("username")) {
+      this.username = xss(this.username);
+    }
+    if (this.isModified("email")) {
+      this.email = xss(this.email);
+    }
+    if (this.isModified("genere")) {
+      this.genere = xss(this.genere);
+    }
+    if (Array.isArray(this.movie_genere)) {
+      this.movie_genere = this.movie_genere.map(xss);
+    }
+    if (this.isModified("avatar")) {
+      this.avatar = xss(this.avatar);
+    }
+ 
+    next();
+  });
 
 const User = Mongoose.model("User", accountSchema);
 module.exports = User;
-
-
-
-

@@ -7,44 +7,48 @@ const notificationController = require("../controllers/commentUser.controller");
 const { sendJsonResponse } = require('../utils/http.helpers');
 
 const routes = {
-  'POST /register': async (req, res) => await AccountController.register(req, res),
-  'POST /login': async (req, res) => await AccountController.login(req, res),
+  'POST /register': async (req, res) => {
+    await AccountController.register(req, res)
+  },
+  'POST /login': async (req, res) => {
+    await AccountController.login(req, res)
+  },
   'POST /logout': async (req, res) => {
-    if (!(await authenticate(req, res))) return;
+    if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     return await AccountController.logout(req, res);
   },
-  'GET /user/home': async (req, res) => {
-    if (!(await authenticate(req, res, ['user', 'admin']))) return;
+  'GET /home': async (req, res) => {
+    if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     return await userLoginController.getUserData(req, res);
   },
-  'GET /user/admin/home': async (req, res) => {
-    if (!(await authenticate(req, res, ['user', 'admin']))) return;
+  'GET /home/createMovies': async (req, res) => {
+    if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     return await movieController.getAllMovies(req, res);
   },
   'GET /user/notifications': async (req, res) => {
-    if (!(await authenticate(req, res))) return;
+    if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     return await notificationController.getNotifications(req, res);
   },
   'PATCH /user/notifications/:id': async (req, res) => {
-    if (!(await authenticate(req, res))) return;
+    if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     req.params = { id: req.url.split('/')[2] };
     return await notificationController.markAsRead(req, res);
   },
   'POST /user/admin/home/movies': async (req, res) => {
-    if (!(await authenticate(req, res, 'admin'))) return;
+    if (!(await authenticate(req, res, ['admin','superAdmin']))) return;
     return await movieController.movieData(req, res);
   },
   'DELETE /user/admin/home/movies/:id': async (req, res) => {
-    if (!(await authenticate(req, res, 'admin'))) return;
+    if (!(await authenticate(req, res, ['admin','superAdmin']))) return;
     req.params = { id: req.url.split('/').pop() };
     return await movieController.deleteMovie(req, res);
   },
   'GET /user/admin/home/:id': async (req, res) => {
-    if (!(await authenticate(req, res, 'admin'))) return;
+    if (!(await authenticate(req, res, ['admin','superAdmin']))) return;
     return await movieController.getMovieByAdminId(req, res);
   },
   'GET /user/home/movies/actors/search/:actorName': async (req, res) => {
-    if (!(await authenticate(req, res, 'admin'))) return;
+    if (!(await authenticate(req, res, ['admin','superAdmin']))) return;
     req.params = { actorName: req.url.split('/')[6] };
     return await movieController.searchActorsByName(req, res);
   }

@@ -4,37 +4,49 @@ const Movie = require("../models/movieData.model");
 const movieServices = require('../services/movies.services');
 const User = require('../models/account.model');
 const { parseRequestBody, sendJsonResponse } = require('../utils/http.helpers');
-
+const { addMovieValidator } = require('../validators/addMovie.validator');
+const { sanitizeObject } = require('../middlewares/sanitize.middleware'); // Asegúrate de tener esta función disponible
 const httpError = require("http-errors");
 
+const xss = require('xss'); // Asegúrate de tenerlo instalado
+
 controller.movieData = async (req, res) => {
-  try {
-    // Parseamos el cuerpo de la solicitud para obtener los datos de la película
-    const { title, synopsis, duration, actors, coverPhoto, categories } = await parseRequestBody(req);
+    try {
+        const movieData = await parseRequestBody(req);
 
-    // Creamos un nuevo objeto de película con los datos proporcionados
-    const newMovie = new Movie({
-      title: title,
-      synopsis: synopsis,
-      duration: duration,
-      actors: actors,
-      coverPhoto: coverPhoto,
-      categories: categories
-    });
+        // Sanitiza los datos antes de usarlos
+        movieData.title = xss(movieData.title);
+        movieData.synopsis = xss(movieData.synopsis);
+        movieData.duration = xss(movieData.duration);
 
-    const movieSave = await newMovie.save();
+        // Valida los datos de entrada
+        const errors = addMovieValidator(movieData);
+        if (errors.length > 0) {
+            return sendJsonResponse(res, 400, { errors });
+        }
 
-    if (!movieSave) {
-      return sendJsonResponse(res, 500, { error: "No se ha podido guardar la película" });
+        const newMovie = new Movie({
+            title: movieData.title,
+            synopsis: movieData.synopsis,
+            duration: movieData.duration,
+            actors: movieData.actors,
+            coverPhoto: movieData.coverPhoto,
+            categories: movieData.categories,
+        });
+
+        const movieSave = await newMovie.save();
+
+        if (!movieSave) {
+            return sendJsonResponse(res, 500, { error: "No se ha podido guardar la película" });
+        }
+
+        sendJsonResponse(res, 200, { message: "Se ha creado la película" });
+    } catch (error) {
+        sendJsonResponse(res, 500, { error: error.message });
     }
-
-    // Enviamos la respuesta de éxito
-    sendJsonResponse(res, 200, { message: "Se ha creado la película" });
-  } catch (error) {
-    // Enviamos la respuesta de error
-    sendJsonResponse(res, 500, { error: error.message });
-  }
 };
+
+
 
 controller.getRatedMovies = async (req, res) => {
   try {
@@ -451,20 +463,38 @@ controller.getTopRatedMoviesOverall = async (req, res) => {
   
 
 // Buscar actores por nombre
-controller.searchActorsByName = async (req, res) => {
+controller.searchMovieByTitle = async (req, res) => {
   try {
-    // Obtener el nombre del actor desde los parámetros de la URL
-    const actorName = req.params.actorName;
+    // Obtener el ID del usuario autenticado desde req.user
+    const userId = req.user._id;
 
-    // Llamar al servicio para buscar actores por nombre
-    const actors = await movieServices.searchActorsByNameAPI(actorName);
-
-    if (!actors || actors.length === 0) {
-      return sendJsonResponse(res, 404, { error: "No se encontraron actores con el nombre especificado." });
+    // Buscar al usuario en la base de datos
+    const user = await User.findById(userId);
+    if (!user) {
+      return sendJsonResponse(res, 404, { error: 'Usuario no encontrado' });
     }
 
-    // Enviar los actores encontrados como respuesta
-    sendJsonResponse(res, 200, { actors });
+    // Extraer y sanitizar el título y los parámetros desde la URL
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const sanitizedParams = sanitizeObject({
+      title: req.params.title,
+      sortBy: url.searchParams.get("sortBy"),
+      genre: url.searchParams.get("genre"),
+    });
+
+    const title = xss(sanitizedParams.title); // Sanitiza específicamente el título
+    const sortBy = xss(sanitizedParams.sortBy); // Sanitiza el parámetro de orden
+    const genre = xss(sanitizedParams.genre); // Sanitiza el género
+
+    // Buscar películas por título y filtros adicionales
+    const movies = await movieServices.searchMovieByTitleAPI(title, userId, sortBy, genre);
+
+    if (!movies || movies.length === 0) {
+      return sendJsonResponse(res, 404, { error: "No se encontraron películas con el título especificado." });
+    }
+
+    // Enviar las películas encontradas como respuesta
+    sendJsonResponse(res, 200, { moviesA: movies });
   } catch (error) {
     // Enviar respuesta de error
     sendJsonResponse(res, 500, { error: error.message });

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
+const xss = require('xss');
 
 const commentSchema = new Schema({
     movieId: {
@@ -24,7 +25,12 @@ const commentSchema = new Schema({
 
 }, { timestamps: true });
 
-
+commentSchema.pre('save', function (next) {
+    if (this.isModified('commentText')) {
+      this.commentText = xss(this.commentText); // Sanitiza el texto del comentario
+    }
+    next();
+  });
 
 const Comment = mongoose.model('CommentUser', commentSchema);
 module.exports = Comment;

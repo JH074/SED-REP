@@ -11,9 +11,14 @@ function createServerHandler() {
     const parsedUrl = url.parse(req.url, true);
     const pathname = parsedUrl.pathname;
 
-    // Configurar las cabeceras para CORS y JSON
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Content-Type', 'application/json');
+    // Configurar las cabeceras de seguridad
+  // Configurar las cabeceras de seguridad
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Security-Policy', "default-src 'self'");
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('X-Content-Type-Options', 'nosniff'); // Prevenir MIME sniffing
+  res.setHeader('X-Frame-Options', 'DENY'); // Prevenir ataques de clickjacking
 
     // Rutas de la API
     if (pathname.startsWith('/api')) {
