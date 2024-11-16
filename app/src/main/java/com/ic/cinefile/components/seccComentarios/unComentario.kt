@@ -16,8 +16,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,6 +45,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,15 +56,12 @@ import com.ic.cinefile.ui.theme.black
 import com.ic.cinefile.ui.theme.dark_red
 import com.ic.cinefile.ui.theme.grisComment
 import com.ic.cinefile.ui.theme.white
-import com.ic.cinefile.viewModel.CommentListState
 import com.ic.cinefile.viewModel.DeleteCommentState
 import com.ic.cinefile.viewModel.RepliesToCommentState
 import com.ic.cinefile.viewModel.UiState
-import com.ic.cinefile.viewModel.UserDataState
 import com.ic.cinefile.viewModel.userCreateViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
-import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,18 +84,15 @@ fun unComentario(
     val commentState by viewModel.commentsState.collectAsState()
 
     // Formato de entrada para parsear la fecha y hora
-// Formato de entrada para parsear la fecha y hora
     val inputFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
-// Formato de salida para mostrar la fecha y hora en un formato legible
+    // Formato de salida para mostrar la fecha y hora en un formato legible
     val outputFormat = SimpleDateFormat("dd 'de' MMMM 'de' yyyy hh:mm a", Locale.getDefault())
     val deleteCommentState by viewModel.deleteCommentState.collectAsState()
 
-// Parsear la fecha y hora del comentario
+    // Parsear la fecha y hora del comentario
     val parsedDate = inputFormat.parse(createdAt)
     val formattedDateTime = outputFormat.format(parsedDate)
-
-
 
     val addScreenState = viewModel.uiState.collectAsState()
 
@@ -111,8 +107,14 @@ fun unComentario(
                 viewModel.setStateToReady()
             }
 
-            UiState.Loading -> {}
-            UiState.Ready -> {}
+            UiState.Loading -> {
+                //
+            }
+
+            UiState.Ready -> {
+                //
+            }
+
             is UiState.Success -> {
                 val token = (addScreenState.value as UiState.Success).token
                 viewModel.fetchUserData(token)
@@ -138,9 +140,16 @@ fun unComentario(
                 viewModel.resetDeleteCommentState()
             }
 
-            else -> {}
+            else -> {
+                //
+            }
         }
     }
+
+    //Para editar
+    var isEditing by remember { mutableStateOf(false) }  // Estado para habilitar la edición
+    var editableCommentText by remember { mutableStateOf(description) } // Texto editable
+    var isEdited by remember { mutableStateOf(false) } //  Estado para indicar si fue editado
 
     Column(
         modifier = Modifier
@@ -160,16 +169,44 @@ fun unComentario(
                     .clip(CircleShape)
             )
             Column {
+
                 Text(
                     text = username,
                     fontWeight = FontWeight.Bold,
                     color = white,
                     modifier = Modifier.padding(start = 12.dp)
                 )
-                Text(
-                    text = description,
-                    modifier = Modifier.padding(start = 12.dp)
-                )
+                //EDICION
+                if (isEditing) {
+                    TextField(
+                        value = editableCommentText,
+                        onValueChange = { input ->
+                            editableCommentText = input.take(150)
+                                        },
+                        modifier = Modifier.padding(start = 12.dp),
+                        colors = TextFieldDefaults.colors(
+                            unfocusedContainerColor = Color.Gray,
+                            focusedContainerColor = Color.LightGray
+                        ),
+                        singleLine = true,
+                    )
+                } else {
+                    Text(
+                        text = editableCommentText, // Usar el texto editable
+                        modifier = Modifier.padding(start = 12.dp)
+                    )
+                    if (isEdited) {
+                        Text(
+                            text = "Editado",
+                            style = TextStyle(
+                                fontSize = 10.sp,
+                                fontStyle = FontStyle.Italic,
+                                color = Color.Gray
+                            ),
+                            modifier = Modifier.padding(start = 12.dp)
+                        )
+                    }
+                }
                 Text(
                     text = "Publicado el $formattedDateTime",
                     style = TextStyle(
@@ -195,16 +232,43 @@ fun unComentario(
                 )
             }
 
+            //ICONO DE EDICION
+            IconButton(
+                onClick = { isEditing = !isEditing }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "",
+                    tint = white,
+                    modifier = Modifier
+                        .size(18.dp)
+                )
+            }
+
+            if (isEditing) {
+                IconButton(
+                    onClick = {
+                        //viewModel.updateComment(id, editableCommentText)
+                        isEditing = false
+                        isEdited = true // Marcar como editado al guardar
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Guardar cambios",
+                        tint = Color.Green,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
             if (userRole == "admin") {
                 //Eliminar comentario
                 IconButton(
                     onClick = {
 
-
-                        /*ELIMINAR LA COMENTARIO*/
-
+                        /*ELIMINAR EL COMENTARIO*/
                         viewModel.deleteComment(id)
-
 
                     }
                 ) {
@@ -301,7 +365,9 @@ fun unComentario(
                             }
                         }
 
-                        else -> {}
+                        else -> {
+                            //
+                        }
                     }
 
                     // Agregar una respuesta
@@ -326,7 +392,9 @@ fun unComentario(
                             ) {
                                 TextField(
                                     value = commentText,
-                                    onValueChange = { commentText = it },
+                                    onValueChange = { input ->
+                                        commentText = input.take(150)
+                                    },
                                     modifier = Modifier.fillMaxWidth(0.9f),
                                     placeholder = {
                                         Text(
@@ -347,6 +415,7 @@ fun unComentario(
                                         focusedTextColor = white,
                                         unfocusedTextColor = white
                                     ),
+                                    singleLine = true
                                 )
                                 Spacer(modifier = Modifier.width(10.dp))
                                 IconButton(

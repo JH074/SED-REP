@@ -67,8 +67,6 @@ import kotlinx.coroutines.delay
 fun comentarios(
     viewModel: userCreateViewModel,
     movieId: Int
-
-
 ) {
     //mostrar más comentarios
     var showComments by remember { mutableStateOf(false) }
@@ -88,10 +86,15 @@ fun comentarios(
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                 viewModel.setStateToReady()
             }
-            UiState.Loading -> {
 
+            UiState.Loading -> {
+                //
             }
-            UiState.Ready -> {}
+
+            UiState.Ready -> {
+                //
+            }
+
             is UiState.Success -> {
                 val token = (addScreenState.value as UiState.Success).token
                 viewModel.fetchUserData(token) // Llama a getUserData para obtener la información del usuario
@@ -168,7 +171,7 @@ fun comentarios(
                                     movieId = movieId,
                                     viewModel = viewModel,
                                     id = comentario.id,
-                                    parentId =comentario.parentId,
+                                    parentId = comentario.parentId,
                                     username = comentario.user.username,
                                     description = comentario.commentText,
                                     createdAt = comentario.createdAt, // Pasar fecha y hora de creación
@@ -180,6 +183,7 @@ fun comentarios(
                                 )
                             }
                         }
+
                         else -> {
                             // Manejar otros estados si es necesario
                         }
@@ -209,7 +213,11 @@ fun comentarios(
                                             .size(40.dp)
                                             .clip(CircleShape)
                                     )
-                                }else-> {}
+                                }
+
+                                else -> {
+                                    //
+                                }
                             }
                             Spacer(modifier = Modifier.width(10.dp))
 
@@ -217,7 +225,9 @@ fun comentarios(
                             TextField(
                                 modifier = Modifier.fillMaxWidth(0.9f),
                                 value = commentText,
-                                onValueChange = { commentText = it },
+                                onValueChange = { input ->
+                                    commentText = input.take(150)
+                                },
                                 colors = TextFieldDefaults.colors(
                                     unfocusedContainerColor = grisComment,
                                     focusedContainerColor = grisComment,
@@ -236,18 +246,19 @@ fun comentarios(
                                             fontWeight = FontWeight.Normal,
                                         )
                                     )
-                                }
+                                },
+                                singleLine = true
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             IconButton(onClick = {
 
                                 val userData = commentData(
-                                    movieId=movieId,
-                                    commentText=commentText
+                                    movieId = movieId,
+                                    commentText = commentText
                                 )
 
-                                viewModel.postComment(movieId,userData)
-                                Log.d("activity","userData:$userData")
+                                viewModel.postComment(movieId, userData)
+                                Log.d("activity", "userData:$userData")
                                 commentText = ""
 
                             }
