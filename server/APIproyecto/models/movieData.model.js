@@ -30,5 +30,13 @@ const movieSchema = new Schema({
 
 movieSchema.plugin(AutoIncrement, { inc_field: 'id' });
 
+movieSchema.pre('save', function (next) {
+    const xss = require('xss');
+    this.title = xss(this.title);
+    this.synopsis = xss(this.synopsis);
+    this.duration = xss(this.duration);
+    
+    next();
+});
 const Movie = mongoose.model('Movie', movieSchema);
 module.exports = Movie;

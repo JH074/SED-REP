@@ -4,61 +4,63 @@ const User = require("../models/account.model");
 const Notification = require("../models/notification.model");
 const moment = require("moment-timezone");
 const { sendJsonResponse, parseRequestBody } = require("../utils/http.helpers");
-
+const xss = require('xss');
+const { sanitizeObject } = require('../middlewares/sanitize.middleware');
 // Agrega un comentario o respuesta
 controller.postComment = async (req, res) => {
   try {
-    // Extraemos los datos necesarios del cuerpo y la URL
-    const { commentText, parentId } = await parseRequestBody(req); // Parseamos el cuerpo de la solicitud
-    const movieId = req.params.id; // Obtenemos el `id` de la película desde req.params
-    const userId = req.user._id; // Obtenemos el userId autenticado
+    // Parseamos y sanitizamos los datos del cuerpo de la solicitud
+    const sanitizedBody = sanitizeObject(await parseRequestBody(req));
+    const { commentText, parentId } = sanitizedBody;
+    const movieId = req.params.id;
+    const userId = req.user._id;
 
     // Verificamos si el usuario existe
     const user = await User.findById(userId);
     if (!user) {
-      return sendJsonResponse(res, 404, { error: 'Usuario no encontrado' });
+      return sendJsonResponse(res, 404, { error: "Usuario no encontrado" });
     }
 
-    // Si `parentId` existe, estamos creando una respuesta a otro comentario
     if (parentId) {
+      // Verificamos si el comentario padre existe
       const parentComment = await commentUser.findById(parentId);
       if (!parentComment) {
-        return sendJsonResponse(res, 404, { error: 'Comentario padre no encontrado' });
+        return sendJsonResponse(res, 404, { error: "Comentario padre no encontrado" });
       }
 
+      // Crear una nueva respuesta
       const newReply = new commentUser({
         movieId,
         userId,
-        commentText,
-        parentId
+        commentText: xss(commentText), // Sanitizamos el texto del comentario
+        parentId,
       });
 
       await newReply.save();
 
-      // Enviar notificación al autor del comentario padre
+      // Crear una notificación para el autor del comentario padre
       const notification = new Notification({
-        userId: parentComment.userId, // El destinatario de la notificación es el autor del comentario padre
+        userId: parentComment.userId,
         message: `@${user.username} ha respondido tu comentario`,
-        avatar: user.avatar, // Solo agregar el avatar del usuario que respondió
-        parentId: parentComment._id // Agregar el parentId del comentario padre
+        avatar: user.avatar,
+        parentId: parentComment._id,
       });
+
       await notification.save();
 
-      // Respuesta de éxito
-      sendJsonResponse(res, 201, { message: 'Respuesta agregada exitosamente' });
-    } else {
-      // Crear un nuevo comentario si no existe `parentId`
-      const newComment = new commentUser({
-        movieId,
-        userId,
-        commentText
-      });
-
-      await newComment.save();
-      sendJsonResponse(res, 201, { message: 'Comentario agregado exitosamente' });
+      return sendJsonResponse(res, 201, { message: "Respuesta agregada exitosamente" });
     }
+
+    // Crear un nuevo comentario si no hay `parentId`
+    const newComment = new commentUser({
+      movieId,
+      userId,
+      commentText: xss(commentText), // Sanitizamos el texto del comentario
+    });
+
+    await newComment.save();
+    return sendJsonResponse(res, 201, { message: "Comentario agregado exitosamente" });
   } catch (error) {
-    // Manejo de errores
     sendJsonResponse(res, 500, { error: error.message });
   }
 };

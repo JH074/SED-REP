@@ -5,72 +5,78 @@ const { sendJsonResponse } = require('../utils/http.helpers');
 
 const routes = {
   'GET /moviesId/:movieId/rating-average': async (req, res) => {
-    if (!(await authenticate(req, res, ['user', 'admin']))) return;
+    if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     return await movieController.getAverageRatingForMovie(req, res);
   },
   'GET /moviesId/:movieId/comments': async (req, res) => {
-    if (!(await authenticate(req, res, ['user', 'admin']))) return;
+    if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     return await commentController.getComments(req, res);
   },
   'GET /moviesId/:movieId/comments/:parentId': async (req, res) => {
-    if (!(await authenticate(req, res, ['user', 'admin']))) return;
+    if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     return await commentController.getRepliesToComment(req, res);
   },
   'DELETE /comments/:id': async (req, res) => {
-    if (!(await authenticate(req, res, ['user', 'admin']))) return;
+    if (!(await authenticate(req, res, ['superAdmin']))) return;
     return await commentController.deleteComment(req, res);
   },
   'GET /moviesId/:id': async (req, res) => {
-    if (!(await authenticate(req, res))) return;
+    if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     return await movieController.getMovieById(req, res);
   },
   'GET /search/:title': async (req, res) => {
-    if (!(await authenticate(req, res))) return;
+    if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     req.params.title = decodeURIComponent(req.params.title);
     return await movieController.searchMovieByTitle(req, res);
   },
   'GET /mostViewed': async (req, res) => {
-    if (!(await authenticate(req, res))) return;
+    if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     return await movieController.getMostViewedMovies(req, res);
   },
   'GET /recentMovies': async (req, res) => {
-    if (!(await authenticate(req, res))) return;
+    if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     return await movieController.getMostRecentMovies(req, res);
   },
   'POST /add': async (req, res) => {
-    return await movieController.movieData(req, res);
-  },
+    if (!(await authenticate(req, res, ['admin','superAdmin']))) return;
+    sanitizeInput(req, res, async () => {
+      return await movieController.movieData(req, res);
+    });
+    },
   'DELETE /delete/:identifier': async (req, res) => {
+    if (!(await authenticate(req, res, ['admin','superAdmin']))) return;
     return await movieController.deleteById(req, res);
   },
   'GET /moviesAll': async (req, res) => {
+    if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     return await movieController.findAll(req, res);
   },
   'POST /moviesId/:id/postComment': async (req, res) => {
-    if (!(await authenticate(req, res))) return;
+    if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     return await commentController.postComment(req, res);
   },
   'POST /moviesId/:id/wishlist/add': async (req, res) => {
-    if (!(await authenticate(req, res))) return;
+    if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     return await movieController.addToWishlist(req, res);
   },
   'GET /wishlist': async (req, res) => {
-    if (!(await authenticate(req, res))) return;
+    if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     return await movieController.getWishlist(req, res);
   },
   'GET /ratedMovies': async (req, res) => {
-    if (!(await authenticate(req, res))) return;
+    if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     return await movieController.getRatedMovies(req, res);
   },
   'GET /moviesId/:movieId/userRatings': async (req, res) => {
-    if (!(await authenticate(req, res))) return;
+    if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     return await movieController.getUserRatingsForMovie(req, res);
   },
   'POST /moviesId/:id/rate': async (req, res) => {
-    if (!(await authenticate(req, res))) return;
+    if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     return await movieController.rateMovie(req, res);
   },
    'DELETE /delete/:identifier': async (req, res) => {
+    if (!(await authenticate(req, res, ['admin','superAdmin']))) return;
     return await movieController.deleteById(req, res);
   },
 };
