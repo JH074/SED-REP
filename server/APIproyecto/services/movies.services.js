@@ -69,10 +69,18 @@ const searchMovieByTitle = async (title, userId, sortBy = 'relevancia', genre = 
   const normalizedTitle = normalizeString(title);
 
   try {
-    const response = await axios.get(`${BASE_URL_API}search/movie?api_key=${API_KEY}&language=es-MX&query=${encodeURIComponent(normalizedTitle)}`);
+    // 1. Realizar la búsqueda inicial en TMDB
+    const response = await axios.get(`${BASE_URL_API}search/movie`, {
+      params: {
+        api_key: API_KEY,
+        language: 'es-MX',
+        query: normalizedTitle
+      }
+    });
+
     let movies = response.data.results;
 
-    // Filtrar por género si se proporciona
+    // 2. Filtrar por género si se proporciona
     if (genre) {
       const genreId = genreMap[genre.toLowerCase()];
       if (genreId) {
@@ -82,63 +90,78 @@ const searchMovieByTitle = async (title, userId, sortBy = 'relevancia', genre = 
       }
     }
 
-    // Ordenar por el criterio especificado
+    // 3. Ordenar por el criterio especificado
     if (sortBy === 'release_date.desc') {
       movies.sort((a, b) => new Date(b.release_date || '1970-01-01') - new Date(a.release_date || '1970-01-01'));
     } else if (sortBy === 'release_date.asc') {
       movies.sort((a, b) => new Date(a.release_date || '1970-01-01') - new Date(b.release_date || '1970-01-01'));
     }
 
-    const moviesWithGenresAndRatings = await Promise.all(movies.map(async (movie) => {
-      const detailsResponse = await axios.get(`${BASE_URL_API}movie/${movie.id}?api_key=${API_KEY}&language=es-MX&append_to_response=videos`);
-      const detailedMovie = detailsResponse.data;
+    // 4. Obtener detalles de películas en paralelo
+    const movieIds = movies.map(movie => movie.id);
+    const detailedMoviesPromises = movieIds.map(movieId => 
+      axios.get(`${BASE_URL_API}movie/${movieId}`, {
+        params: {
+          api_key: API_KEY,
+          language: 'es-MX',
+          append_to_response: 'videos'
+        }
+      })
+    );
+    const detailedMoviesResponses = await Promise.all(detailedMoviesPromises);
+    const detailedMovies = detailedMoviesResponses.map(res => res.data);
 
+    // 5. Obtener todas las calificaciones de los usuarios para las películas en una sola consulta
+    const usersWithRatings = await User.find({ 'ratings.movieId': { $in: movieIds.map(String) } }, 'ratings');
+
+    // 6. Crear un mapa de calificaciones promedio por película
+    const ratingsMap = {};
+    movieIds.forEach(movieId => {
+      const ratingsForMovie = usersWithRatings.flatMap(user => {
+        const ratings = user.ratings.filter(r => r.movieId === String(movieId));
+        return ratings.map(r => r.rating);
+      });
+      const averageRating = ratingsForMovie.length > 0 ? 
+        ratingsForMovie.reduce((sum, rating) => sum + rating, 0) / ratingsForMovie.length : null;
+      ratingsMap[movieId] = averageRating;
+    });
+
+    // 7. Construir el resultado final
+    const moviesWithGenresAndRatings = detailedMovies.map(detailedMovie => {
       // Obtener los nombres de los géneros
       const genres = detailedMovie.genres.map(genre => genre.name);
-      
+
       // Mapear el nombre de género al ID usando genreMap
       const genreIds = detailedMovie.genres.map(genre => genreMap[genre.name.toLowerCase()]).filter(id => id !== undefined);
-
-      // Buscar todas las calificaciones más recientes de otros usuarios para la misma película
-      const users = await User.find({ 'ratings.movieId': movie.id });
-      const latestRatings = users.flatMap(user => {
-        const ratingsForMovie = user.ratings.filter(r => r.movieId === String(movie.id));
-        if (ratingsForMovie.length > 0) {
-          const latestRating = ratingsForMovie[ratingsForMovie.length - 1].rating;
-          return [latestRating];
-        }
-        return [];
-      });
-
-      // Calcular el promedio de las calificaciones más recientes
-      const averageRating = latestRatings.length > 0 ? latestRatings.reduce((sum, rating) => sum + rating, 0) / latestRatings.length : null;
 
       return {
         id: detailedMovie.id,
         poster: detailedMovie.poster_path ? `https://image.tmdb.org/t/p/w500${detailedMovie.poster_path}` : null,
         title: detailedMovie.title,
         duracion: detailedMovie.runtime,
-        fecha_lanzamiento: detailedMovie.release_date ? detailedMovie.release_date : 'sin fecha',
+        fecha_lanzamiento: detailedMovie.release_date || 'sin fecha',
         genero: genres.join(", "),
         descripcion: detailedMovie.overview,
         trailer: detailedMovie.videos.results.length > 0 ? `https://www.youtube.com/watch?v=${detailedMovie.videos.results[0].key}` : null,
         genreIds: genreIds,
-        averageRating: averageRating // Agregar el promedio de calificaciones recientes
+        averageRating: ratingsMap[detailedMovie.id] // Usar el promedio de calificaciones calculado
       };
-    }));
+    });
 
-    // Guardar la búsqueda reciente del usuario
-    const user = await User.findById(userId);
-    if (user) {
-      // Agregar la nueva búsqueda al inicio del array
-      user.recentSearches.unshift({ query: normalizedTitle });
-      // Limitar la lista a las últimas 5 búsquedas
-      user.recentSearches = user.recentSearches.slice(0, 5);
-      await user.save();
-    }
+    // 8. Guardar la búsqueda reciente del usuario
+    await User.findByIdAndUpdate(userId, {
+      $push: {
+        recentSearches: {
+          $each: [{ query: normalizedTitle }],
+          $position: 0,
+          $slice: 5
+        }
+      }
+    });
 
     return moviesWithGenresAndRatings;
   } catch (error) {
+    console.error(error);
     throw new Error("Ocurrió un error al buscar la película. Por favor, inténtalo de nuevo.");
   }
 };
@@ -149,69 +172,52 @@ const searchMovieByTitle = async (title, userId, sortBy = 'relevancia', genre = 
 
 
 const getGenreId = (genreName) => {
-    const genreId = genreMap[genreName.toLowerCase()];
-    if (!genreId) {
-      throw new Error("Género no encontrado.");
-    }
-    return genreId;
-  };
-  
+  const genreId = genreMap[genreName.toLowerCase()];
+  if (!genreId) {
+    throw new Error("Género no encontrado.");
+  }
+  return genreId;
+};
+
 
 const getMoviesCategory = async (categoryName, limit = 10) => {
   try {
     const categoryId = getGenreId(categoryName);
-    const response = await axios.get(
-      `${BASE_URL_API}discover/movie?api_key=${API_KEY}&language=es-MX&with_genres=${categoryId}&page=1&include_adult=false&sort_by=popularity.desc&vote_count.gte=1000&vote_average.gte=5&with_watch_monetization_types=flatrate`
-    );
 
-    const movies = response.data.results.slice(0, limit); // Limitar las películas al número especificado
+    // Realizar una solicitud a la API sin campos adicionales innecesarios
+    const response = await axios.get(`${BASE_URL_API}discover/movie`, {
+      params: {
+        api_key: API_KEY,
+        language: 'es-MX',
+        with_genres: categoryId,
+        page: 1,
+        include_adult: false,
+        sort_by: 'popularity.desc',
+        'vote_count.gte': 1000,
+        'vote_average.gte': 5,
+        with_watch_monetization_types: 'flatrate',
+        // No necesitamos 'append_to_response' ya que no utilizaremos 'credits' ni 'videos'
+      },
+    });
 
+    const movies = response.data.results.slice(0, limit);
 
+    // Mapear y procesar los datos recibidos
+    const moviesWithDetails = movies.map((movie) => {
+      return {
+        id: movie.id,
+        poster: movie.poster_path
+          ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+          : null,
+        // 'duracion' no está disponible en la respuesta de 'discover/movie'
+        // Si es necesario, se requeriría una solicitud adicional por película para obtener 'runtime'
+      };
+    });
 
-
-
-    // Enrich each movie with additional details including actors
-    const moviesWithDetails = await Promise.all(
-      movies.map(async (movie) => {
-        // Obtener detalles de la película
-        const detailsResponse = await axios.get(
-          `${BASE_URL_API}movie/${movie.id}?api_key=${API_KEY}&language=es-MX&append_to_response=credits,videos`
-        );
-        const detailedMovie = detailsResponse.data;
-
-        // Mapear los nombres y fotos de los actores
-        const actors = detailedMovie.credits.cast.map((actor) => ({
-          name: actor.name,
-          profileUrl: actor.profile_path
-            ? `https://image.tmdb.org/t/p/w500${actor.profile_path}`
-            : null,
-        }));
-
-        return {
-          id: detailedMovie.id,
-          poster: detailedMovie.poster_path
-            ? `https://image.tmdb.org/t/p/w500${detailedMovie.poster_path}`
-            : null,
-          title: detailedMovie.title,
-          duracion: detailedMovie.runtime,
-          fecha_lanzamiento: detailedMovie.release_date,
-          genero: detailedMovie.genres.map((genre) => genre.name).join(", "),
-          descripcion: detailedMovie.overview,
-          trailer:
-            detailedMovie.videos.results.length > 0
-              ? `https://www.youtube.com/watch?v=${detailedMovie.videos.results[0].key}`
-              : null,
-          actors: actors,
-        };
-      })
-    );
-
-
-
-
-    
-    return moviesWithDetails.sort(() => Math.random() - 0.5); // Reordenar aleatoriamente las películas
+    // Reordenar aleatoriamente las películas si es necesario
+    return moviesWithDetails.sort(() => Math.random() - 0.5);
   } catch (error) {
+    console.error(error);
     throw new Error(`No se ha podido encontrar películas en la categoría: ${categoryName}`);
   }
 };
@@ -222,48 +228,81 @@ const getMoviesCategory = async (categoryName, limit = 10) => {
 
 
 
+
 //mas bisots/recientess
 const getMoviesBySortType = async (sortType, limit = 10) => {
   try {
-    const genreIds = Object.values(genreMap);
-    let allMovies = [];
+    // Realizar una única solicitud para obtener películas ordenadas
+    const response = await axios.get(`${BASE_URL_API}discover/movie`, {
+      params: {
+        api_key: API_KEY,
+        language: 'es-MX',
+        sort_by: sortType,
+        page: 1,
+        include_adult: false,
+        'vote_count.gte': 500,
+        'vote_average.gte': 3,
+        with_watch_monetization_types: 'flatrate',
+      },
+    });
 
-    for (const genreId of genreIds) {
-      const response = await axios.get(`${BASE_URL_API}discover/movie?api_key=${API_KEY}&language=es-MX&with_genres=${genreId}&page=1&include_adult=false&sort_by=${sortType}&vote_count.gte=1000&vote_average.gte=5&with_watch_monetization_types=flatrate`);
-      const movies = response.data.results.slice(0, limit);
+    const movies = response.data.results.slice(0, limit);
 
-      // Enrich each movie with additional details
-      const moviesWithDetails = await Promise.all(movies.map(async (movie) => {
-        const detailsResponse = await axios.get(`${BASE_URL_API}movie/${movie.id}?api_key=${API_KEY}&language=es-MX&append_to_response=videos,credits`); // Agregar credits para obtener los actores
-        const detailedMovie = detailsResponse.data;
+    // Obtener detalles de las películas en paralelo, limitando el número de solicitudes simultáneas
+    const MAX_CONCURRENT_REQUESTS = 5;
+    const movieDetails = [];
 
-        // Obtener nombres y fotos de los actores
-        const actors = detailedMovie.credits.cast.map(actor => ({
-          name: actor.name,
-          profilePhoto: actor.profile_path ? `https://image.tmdb.org/t/p/w500${actor.profile_path}` : null
-        }));
-
-        return {
-          id: detailedMovie.id,
-          poster: detailedMovie.poster_path ? `https://image.tmdb.org/t/p/w500${detailedMovie.poster_path}` : null,
-          title: detailedMovie.title,
-          duracion: detailedMovie.runtime,
-          fecha_lanzamiento: detailedMovie.release_date,
-          genero: detailedMovie.genres.map(genre => genre.name).join(", "),
-          descripcion: detailedMovie.overview,
-          trailer: detailedMovie.videos.results.length > 0 ? `https://www.youtube.com/watch?v=${detailedMovie.videos.results[0].key}` : null,
-          actors: actors // Agregar información de los actores al objeto de la película
-        };
-      }));
-
-      allMovies = allMovies.concat(moviesWithDetails);
+    for (let i = 0; i < movies.length; i += MAX_CONCURRENT_REQUESTS) {
+      const movieBatch = movies.slice(i, i + MAX_CONCURRENT_REQUESTS);
+      const detailsPromises = movieBatch.map((movie) =>
+        axios.get(`${BASE_URL_API}movie/${movie.id}`, {
+          params: {
+            api_key: API_KEY,
+            language: 'es-MX',
+            append_to_response: 'videos,credits',
+          },
+        })
+      );
+      const detailsResponses = await Promise.all(detailsPromises);
+      movieDetails.push(...detailsResponses.map((res) => res.data));
     }
 
-    return allMovies;
+    // Mapear y procesar los datos recibidos
+    const moviesWithDetails = movieDetails.map((detailedMovie) => {
+      // Obtener nombres y fotos de los actores (limitar a los primeros 5)
+      const actors = detailedMovie.credits.cast.slice(0, 5).map((actor) => ({
+        name: actor.name,
+        profilePhoto: actor.profile_path
+          ? `https://image.tmdb.org/t/p/w500${actor.profile_path}`
+          : null,
+      }));
+
+      return {
+        id: detailedMovie.id,
+        poster: detailedMovie.poster_path
+          ? `https://image.tmdb.org/t/p/w500${detailedMovie.poster_path}`
+          : null,
+        title: detailedMovie.title,
+        duracion: detailedMovie.runtime,
+        fecha_lanzamiento: detailedMovie.release_date,
+        genero: detailedMovie.genres.map((genre) => genre.name).join(', '),
+        descripcion: detailedMovie.overview,
+        trailer:
+          detailedMovie.videos.results.length > 0
+            ? `https://www.youtube.com/watch?v=${detailedMovie.videos.results[0].key}`
+            : null,
+        actors: actors,
+      };
+    });
+
+    return moviesWithDetails;
   } catch (error) {
-    throw new Error("No se ha podido encontrar las películas.");
+    console.error('Error in getMoviesBySortType:', error);
+    throw new Error('No se ha podido encontrar las películas.');
   }
 };
+
+
 
 
 //mas vistos
@@ -279,97 +318,86 @@ const getMoviesBySortType = async (sortType, limit = 10) => {
 
 
 
-  const fetchMovieById = async (id,userId) => {
+  const fetchMovieById = async (id, userId) => {
     try {
-      const response = await axios.get(`${BASE_URL_API}movie/${id}?api_key=${API_KEY}&language=es-MX&append_to_response=videos,credits`);
-      const movie = response.data;
+      // Ejecutar solicitudes en paralelo
+      const [movieResponse, user] = await Promise.all([
+        axios.get(`${BASE_URL_API}movie/${id}`, {
+          params: {
+            api_key: API_KEY,
+            language: 'es-MX',
+            append_to_response: 'videos,credits',
+          },
+        }),
+        User.findById(userId, 'ratings'),
+      ]);
   
-      const actors = movie.credits.cast.map(actor => ({
+      const movie = movieResponse.data;
+  
+      // Mapear actores (limitar a los primeros 5)
+      const actors = movie.credits.cast.slice(0, 10).map((actor) => ({
         name: actor.name,
-        profileUrl: actor.profile_path ? `https://image.tmdb.org/t/p/w500${actor.profile_path}` : null,
+        profileUrl: actor.profile_path
+          ? `https://image.tmdb.org/t/p/w500${actor.profile_path}`
+          : null,
       }));
-
-   //   Buscar la calificación del usuario para esta película
   
-    const user = await User.findById(userId);
-    let userRating = null;
-
-    if (user) {
-      const userRatingObj = user.ratings.find(rating => rating.movieId === id.toString());
-      if (userRatingObj) {
-        userRating = userRatingObj.rating;
+      // Buscar la calificación del usuario para esta película
+      let userRating = 0;
+  
+      if (user && user.ratings && user.ratings.length > 0) {
+        const userRatingObj = user.ratings.find((rating) => rating.movieId === id.toString());
+        if (userRatingObj) {
+          userRating = userRatingObj.rating;
+        }
       }
-    }
-
   
       return {
         id: movie.id,
-        poster: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
+        poster: movie.poster_path
+          ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+          : null,
         title: movie.title,
         duracion: movie.runtime,
         fecha_lanzamiento: movie.release_date,
-        genero: movie.genres.map(genre => genre.name).join(", "),
+        genero: movie.genres.map((genre) => genre.name).join(', '),
         descripcion: movie.overview,
-        trailer: movie.videos.results.length > 0 ? `https://www.youtube.com/watch?v=${movie.videos.results[0].key}` : null,
+        trailer:
+          movie.videos.results.length > 0
+            ? `https://www.youtube.com/watch?v=${movie.videos.results[0].key}`
+            : null,
         actors: actors,
-        userRating: userRating ? userRating :0 // Incluir la calificación del usuario
+        userRating: userRating, // Incluir la calificación del usuario
       };
     } catch (error) {
-      throw new Error("Error occurred while fetching movie details. Please try again.");
+      console.error('Error in fetchMovieById:', error);
+      throw new Error('Error occurred while fetching movie details. Please try again.');
     }
   };
   
-
-
-  //calificaciones generales
-  // const getMovieAverageRating = async (movieId) => {
-  //   try {
-  //     // Encontrar todos los usuarios que hayan calificado la película
-  //     const users = await User.find({ 'ratings.movieId': movieId });
   
-  //     if (users.length === 0) {
-  //       return null; // Si no hay usuarios que hayan calificado la película, retornar null
-  //     }
-  
-  //     // Filtrar las calificaciones de la película específica
-  //     const ratings = users.map(user => {
-  //       const ratingObj = user.ratings.find(r => r.movieId === movieId);
-  //       return ratingObj ? ratingObj.rating : null;
-  //     }).filter(r => r !== null);
-  
-  //     if (ratings.length === 0) {
-  //       return null; // Si no hay calificaciones encontradas, retornar null
-  //     }
-  
-  //     // Calcular el promedio de las calificaciones
-  //     const averageRating = ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
-  
-  //     // Obtener detalles de la película desde cualquier usuario que la haya calificado
-  //     const user = users.find(user => user.ratings.find(r => r.movieId === movieId));
-  //     const movieDetails = user ? user.ratings.find(r => r.movieId === movieId) : null;
-  
-  //     return {
-  //       averageRating,
-  //       movieDetails
-  //     };
-  //   } catch (error) {
-  //     throw new Error("Error occurred while calculating the average rating. Please try again.");
-  //   }
-  // };
-  
-  
-
-
-
-
 
 
 
 //obtener peliculas ya calificadas(usuario)
+// Caché en memoria para almacenar detalles de películas
+const movieDetailsCache = new Map();
+
 const getMovieDetailsFromAPI = async (movieId) => {
+  if (movieDetailsCache.has(movieId)) {
+    return movieDetailsCache.get(movieId);
+  }
+
   try {
-    const response = await axios.get(`${BASE_URL_API}movie/${movieId}?api_key=${API_KEY}&language=es-MX`);
-    return response.data;
+    const response = await axios.get(`${BASE_URL_API}movie/${movieId}`, {
+      params: {
+        api_key: API_KEY,
+        language: 'es-MX',
+      },
+    });
+    const data = response.data;
+    movieDetailsCache.set(movieId, data); // Almacenar en caché
+    return data;
   } catch (error) {
     console.error(`Error fetching movie details for movieId ${movieId}:`, error);
     return null;
@@ -449,36 +477,34 @@ const getRatedMovies = async (userId) => {
 
 
 
-
   //proxiomo a estrenar
-  const getUpcomingMovies= async (limit = 10) => {
+  const getUpcomingMovies = async (limit = 10) => {
     try {
-      const today = new Date().toISOString().split("T")[0]; // Fecha actual en formato ISO
-      const response = await axios.get(`${BASE_URL_API}discover/movie`, {
+      const response = await axios.get(`${BASE_URL_API}movie/upcoming`, {
         params: {
           api_key: API_KEY,
-          language: "es-MX",
-          primary_release_date_gte: today,
-          sort_by: "primary_release_date.asc",
-          include_adult: false,
+          language: 'es-MX',
+          region: 'MX',
           page: 1,
         },
       });
   
       const upcomingMovies = response.data.results.slice(0, limit);
   
-      const moviesWithDetails = await Promise.all(
-        upcomingMovies.map(async (movie) => {
-          const detailedMovieResponse = await axios.get(
-            `${BASE_URL_API}movie/${movie.id}`,
-            {
-              params: {
-                api_key: API_KEY,
-                language: "es-MX",
-                append_to_response: "videos",
-              },
-            }
-          );
+      // Obtener detalles adicionales en paralelo con control de concurrencia
+      const MAX_CONCURRENT_REQUESTS = 5;
+      const moviesWithDetails = [];
+  
+      for (let i = 0; i < upcomingMovies.length; i += MAX_CONCURRENT_REQUESTS) {
+        const batch = upcomingMovies.slice(i, i + MAX_CONCURRENT_REQUESTS);
+        const batchPromises = batch.map(async (movie) => {
+          const detailedMovieResponse = await axios.get(`${BASE_URL_API}movie/${movie.id}`, {
+            params: {
+              api_key: API_KEY,
+              language: 'es-MX',
+              append_to_response: 'videos',
+            },
+          });
           const detailedMovie = detailedMovieResponse.data;
   
           return {
@@ -488,28 +514,27 @@ const getRatedMovies = async (userId) => {
               : null,
             title: detailedMovie.title,
             duracion: detailedMovie.runtime,
-            fecha_lanzamiento: detailedMovie.release_date
-              ? detailedMovie.release_date
-              : "sin fecha",
-            genero: detailedMovie.genres.map((genre) => genre.name).join(", "),
+            fecha_lanzamiento: detailedMovie.release_date || 'sin fecha',
+            genero: detailedMovie.genres.map((genre) => genre.name).join(', '),
             descripcion: detailedMovie.overview,
             trailer:
               detailedMovie.videos.results.length > 0
-                ? `https://www.youtube.com/wat ch?v=${detailedMovie.videos.results[0].key}`
+                ? `https://www.youtube.com/watch?v=${detailedMovie.videos.results[0].key}`
                 : null,
           };
-        })
-      );
+        });
+  
+        const batchResults = await Promise.all(batchPromises);
+        moviesWithDetails.push(...batchResults);
+      }
   
       return moviesWithDetails;
     } catch (error) {
-      console.error("Error en getUpcomingMoviesAPI:", error.message);
-      throw new Error(
-        "Ocurrió un error al buscar los próximos estrenos. Por favor, inténtalo de nuevo."
-      );
+      console.error('Error en getUpcomingMovies:', error.message);
+      throw new Error('Ocurrió un error al buscar los próximos estrenos. Por favor, inténtalo de nuevo.');
     }
   };
-
+  
 
 
   const addToWishlist = async (userId, movieId) => {

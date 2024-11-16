@@ -75,6 +75,9 @@ const routes = {
   },
 };
 
+
+
+
 async function movieRouter(req, res) {
   const urlParts = req.url.split('?')[0].split('/').filter(Boolean); // Dividir y limpiar la URL
   const method = req.method;
