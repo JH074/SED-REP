@@ -9,6 +9,7 @@ import com.ic.cinefile.API.Model.movies.ReplyComment
 import com.ic.cinefile.API.Model.movies.UserRatingResponse
 import com.ic.cinefile.API.Model.movies.actorNameResponse
 import com.ic.cinefile.API.Model.movies.createMovieResponse
+import com.ic.cinefile.API.Model.movies.editCommentResponse
 import com.ic.cinefile.API.Model.movies.getCommentResponse
 import com.ic.cinefile.API.Model.movies.homeUserResponse
 import com.ic.cinefile.API.Model.movies.mostViewMoviesResponse
@@ -30,6 +31,7 @@ import com.ic.cinefile.data.accountLoginData
 import com.ic.cinefile.data.accountRegisterData
 import com.ic.cinefile.data.commentData
 import com.ic.cinefile.data.createMovieData
+import com.ic.cinefile.data.editCommentData
 import com.ic.cinefile.data.searchMoviesData
 import com.ic.cinefile.data.witchListData
 
@@ -42,6 +44,7 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Headers
 import retrofit2.http.PATCH
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -111,6 +114,15 @@ interface Methods {
         @Query("parentId") parentId: String?, // Puede ser nulo si no hay parentId
         @Body commentData: commentData // Asegúrate de tener tu modelo de datos para el cuerpo del comentario definido
     ): Response<postCommentResponse>
+
+    @Headers("Content-Type: application/json")
+    @PUT("api/movies/moviesId/{movieId}/editComments/{id}")
+    suspend fun editComment(
+        @Header("Authorization") authorization: String,
+        @Path("movieId") movieId: Int,
+        @Path("id") commentId: String,
+        @Body updatedComment: editCommentData// Modelo para el comentario actualizado
+    ): Response<editCommentResponse>
 
         @Headers("Content-Type: application/json")
         @GET("api/movies/moviesId/{id}/comments")
@@ -202,6 +214,8 @@ interface Methods {
         @Header("Authorization") authorization: String,
         @Path("id") commentId: String
     ): Response<DeleteResponse>
+
+
 
     // Método para eliminar una respuesta específica
     @DELETE("api/movies/replies/{id}")

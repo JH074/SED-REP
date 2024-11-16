@@ -88,7 +88,6 @@ fun comentariosAdmin(
 
             UiState.Ready -> {}
             is UiState.Success -> {
-                val token = (addScreenState.value as UiState.Success).token
                 viewModel.fetchUserData() // Llama a getUserData para obtener la información del usuario
                 viewModel.setStateToReady()
             }

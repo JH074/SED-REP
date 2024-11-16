@@ -106,7 +106,6 @@ fun unComentarioAdmin(
             UiState.Loading -> {}
             UiState.Ready -> {}
             is UiState.Success -> {
-                val token = (addScreenState.value as UiState.Success).token
                 viewModel.fetchUserData()
                 viewModel.setStateToReady()
             }

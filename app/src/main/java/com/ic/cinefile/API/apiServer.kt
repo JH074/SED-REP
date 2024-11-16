@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit
 
 
 object apiServer {
-    val BASE_URL = "http://192.168.221.165:3500/" // O la dirección correcta
+    val BASE_URL = "http://192.168.0.82:3500/" // O la dirección correcta
 
     private val okHttpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS) // Tiempo de espera para conectarse
