@@ -109,7 +109,7 @@ fun descripcionPeli(
             UiState.Ready -> {}
             is UiState.Success -> {
                 val token = (addScreenState.value as UiState.Success).token
-                viewModel.fetchUserData(token) // Llama a getUserData para obtener la información del usuario
+                viewModel.fetchUserData() // Llama a getUserData para obtener la información del usuario
                 viewModel.setStateToReady()
             }
         }

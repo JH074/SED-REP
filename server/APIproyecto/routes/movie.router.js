@@ -5,16 +5,20 @@ const { sendJsonResponse } = require('../utils/http.helpers');
 
 const routes = {
   'GET /moviesId/:movieId/rating-average': async (req, res) => {
-    if (!(await authenticate(req, res))) return;
+    if (!(await authenticate(req, res, ['user', 'admin']))) return;
     return await movieController.getAverageRatingForMovie(req, res);
   },
   'GET /moviesId/:movieId/comments': async (req, res) => {
-    if (!(await authenticate(req, res))) return;
+    if (!(await authenticate(req, res, ['user', 'admin']))) return;
     return await commentController.getComments(req, res);
   },
   'GET /moviesId/:movieId/comments/:parentId': async (req, res) => {
-    if (!(await authenticate(req, res))) return;
+    if (!(await authenticate(req, res, ['user', 'admin']))) return;
     return await commentController.getRepliesToComment(req, res);
+  },
+  'DELETE /comments/:id': async (req, res) => {
+    if (!(await authenticate(req, res, ['user', 'admin']))) return;
+    return await commentController.deleteComment(req, res);
   },
   'GET /moviesId/:id': async (req, res) => {
     if (!(await authenticate(req, res))) return;
@@ -65,7 +69,10 @@ const routes = {
   'POST /moviesId/:id/rate': async (req, res) => {
     if (!(await authenticate(req, res))) return;
     return await movieController.rateMovie(req, res);
-  }
+  },
+   'DELETE /delete/:identifier': async (req, res) => {
+    return await movieController.deleteById(req, res);
+  },
 };
 
 async function movieRouter(req, res) {

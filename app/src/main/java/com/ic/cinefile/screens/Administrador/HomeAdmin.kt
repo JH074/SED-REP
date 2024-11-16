@@ -1,5 +1,6 @@
 package com.ic.cinefile.screens
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -132,6 +133,7 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
 
     LaunchedEffect(Unit) {
         viewModel.fetchUserData()
+
     }
 
     if (openAlertDialog.value) {
@@ -621,6 +623,7 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
                                     LazyRow {
                                         items(movies.size) { index ->
                                             val movie = movies[index]
+                                            Log.d("MoviePoster", "Poster URL: ${movie.posterUrl}")
 
                                             Box(modifier = Modifier
                                                 .padding(4.dp)
@@ -698,6 +701,7 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
                                     LazyRow {
                                         items(movies.size) { index ->
                                             val movie = movies[index]
+                                            Log.d("MoviePoster", "Poster URL: ${movie.posterUrl}")
 
                                             Box(modifier = Modifier
                                                 .padding(4.dp)
