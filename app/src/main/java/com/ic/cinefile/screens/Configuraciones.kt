@@ -35,7 +35,6 @@ import androidx.navigation.compose.rememberNavController
 import com.ic.cinefile.R
 import com.ic.cinefile.viewModel.userCreateViewModel
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Configuraciones(viewModel: userCreateViewModel,navController: NavController) {

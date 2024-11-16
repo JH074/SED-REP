@@ -36,7 +36,7 @@ const routes = {
   },
   'DELETE /user/admin/home/movies/:id': async (req, res) => {
     if (!(await authenticate(req, res, 'admin'))) return;
-    req.params = { id: req.url.split('/')[4] };
+    req.params = { id: req.url.split('/').pop() };
     return await movieController.deleteMovie(req, res);
   },
   'GET /user/admin/home/:id': async (req, res) => {
