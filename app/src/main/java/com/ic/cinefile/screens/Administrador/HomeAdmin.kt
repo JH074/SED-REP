@@ -101,9 +101,6 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
     val logoutResult by viewModel.logoutResult.collectAsState()
 
-
-    var isLoading by remember { mutableStateOf(true) }
-
     val userRole = viewModel.getUserRole()
     val deleteMovieState by viewModel.deleteMovieState.collectAsState()
 
@@ -165,7 +162,9 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
                 // Puedes agregar algún indicador de carga general aquí si es necesario
             }
 
-            UiState.Ready -> {}
+            UiState.Ready -> {
+                //
+            }
             is UiState.Success -> {
               // Llama a getUserData para obtener la información del usuario
                 viewModel.setStateToReady()
@@ -195,7 +194,9 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
                 val message = (logoutResult as LogoutResult.Error).message
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
             }
-            else -> {}
+            else -> {
+                //
+            }
         }
     }
 
@@ -217,6 +218,7 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
 
                 when (userDataState) {
                     is UserDataState.Loading -> {
+                        //
                     }
 
                     is UserDataState.Success -> {

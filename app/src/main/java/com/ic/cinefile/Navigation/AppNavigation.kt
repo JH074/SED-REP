@@ -15,6 +15,7 @@ import com.ic.cinefile.components.seccComentarios.unComentario
 import com.ic.cinefile.screens.Administrador.AgregarPeliAdmin
 //import com.ic.cinefile.screens.Administrador.AgregarPeliAdmin
 import com.ic.cinefile.screens.Administrador.descripcionPeliAdmin
+import com.ic.cinefile.screens.Administrador.editarPelicula
 import com.ic.cinefile.screens.Buscador
 import com.ic.cinefile.screens.Calificadas
 import com.ic.cinefile.screens.Configuraciones
@@ -40,88 +41,88 @@ import com.ic.cinefile.viewModel.userCreateViewModel
 
 @Composable
 fun AppNavigation(
-    viewModel : userCreateViewModel,
+    viewModel: userCreateViewModel,
     navController: NavHostController = rememberNavController()
 
-){
+) {
 
 
     NavHost(
         navController = navController,
-            startDestination = screenRoute.HomeAppScreen.route
+        startDestination = screenRoute.HomeAppScreen.route
     )
     {
-        composable(route = screenRoute.CrearCuenta.route){
+        composable(route = screenRoute.CrearCuenta.route) {
             CrearCuenta(viewModel, navController)
         }
-        composable(route = screenRoute.CrearPerfil.route){
+        composable(route = screenRoute.CrearPerfil.route) {
             CrearPerfil(viewModel, navController)
         }
-        composable(route=screenRoute.Genero.route){
-            contentGenero(viewModel,navController)
+        composable(route = screenRoute.Genero.route) {
+            contentGenero(viewModel, navController)
         }
 
-        composable(route=screenRoute.ElegirGeneros.route){
-            ElegirGeneros(viewModel,navController)
+        composable(route = screenRoute.ElegirGeneros.route) {
+            ElegirGeneros(viewModel, navController)
         }
-        composable(route=screenRoute.contentAvatar.route){
-            contentAvatar(viewModel,navController)
+        composable(route = screenRoute.contentAvatar.route) {
+            contentAvatar(viewModel, navController)
         }
-        composable(route=screenRoute.HomeAppScreen.route){
+        composable(route = screenRoute.HomeAppScreen.route) {
             HomeAppScreen(navController)
         }
-        composable(route=screenRoute.Login.route){
-            Login(viewModel,navController)
+        composable(route = screenRoute.Login.route) {
+            Login(viewModel, navController)
         }
 
         /*composable(route=screenRoute.Home.route){
             Home(viewModel,navController)
         }*/
 
-        composable(route=screenRoute.Buscador.route){
-            Buscador(viewModel,navController)
+        composable(route = screenRoute.Buscador.route) {
+            Buscador(viewModel, navController)
         }
 
 
         composable(
             route = "${screenRoute.descripcionPeli.route}/{movieId}",
-                arguments = listOf(navArgument("movieId"){
-                    type= NavType.IntType
-                })
+            arguments = listOf(navArgument("movieId") {
+                type = NavType.IntType
+            })
 
         ) { backStackEntry ->
-            val movieId = backStackEntry.arguments?.getInt("movieId") ?: throw IllegalArgumentException("Movie ID missing")
+            val movieId = backStackEntry.arguments?.getInt("movieId")
+                ?: throw IllegalArgumentException("Movie ID missing")
 
             descripcionPeli(
-               onClick = {}, viewModel,navController, movieId)
+                onClick = {}, viewModel, navController, movieId
+            )
         }
-
-
 
 
         composable(
             route = "${screenRoute.descripcionPeli2.route}/{movieId}",
-            arguments = listOf(navArgument("movieId"){
-                type= NavType.IntType
+            arguments = listOf(navArgument("movieId") {
+                type = NavType.IntType
             })
 
         ) { backStackEntry ->
-            val movieId = backStackEntry.arguments?.getInt("movieId") ?: throw IllegalArgumentException("Movie ID missing")
+            val movieId = backStackEntry.arguments?.getInt("movieId")
+                ?: throw IllegalArgumentException("Movie ID missing")
 
             descripcionPeli2(
-                onClick = {}, viewModel,navController, movieId)
+                onClick = {}, viewModel, navController, movieId
+            )
         }
 
 
-        composable(route=screenRoute.PerfilAnuncios.route){
-            PerfilAnuncios(viewModel,navController)
+        composable(route = screenRoute.PerfilAnuncios.route) {
+            PerfilAnuncios(viewModel, navController)
         }
-        composable(route = screenRoute.Notificaciones.route){
+        composable(route = screenRoute.Notificaciones.route) {
             Notificaciones(
                 viewModel = viewModel,
                 navController = navController,
-
-
             )
 
         }
@@ -137,56 +138,51 @@ fun AppNavigation(
         }
 
 
-        composable(route=screenRoute.Calificadas.route){
-            Calificadas(viewModel,navController)
+        composable(route = screenRoute.Calificadas.route) {
+            Calificadas(viewModel, navController)
         }
-        composable(route=screenRoute.Lista_deseos.route){
-            Lista_deseos(viewModel,navController)
+        composable(route = screenRoute.Lista_deseos.route) {
+            Lista_deseos(viewModel, navController)
         }
-        composable(route=screenRoute.Configuraciones.route){
-            Configuraciones(viewModel,navController)
+        composable(route = screenRoute.Configuraciones.route) {
+            Configuraciones(viewModel, navController)
         }
-
-
-
-
-
 
 
         //admin
-        composable(route=screenRoute.HomeAdmin.route){
-            HomeAdmin(viewModel,navController)
+        composable(route = screenRoute.HomeAdmin.route) {
+            HomeAdmin(viewModel, navController)
         }
 
         composable(
             route = "${screenRoute.descripcionPeliAdmin.route}/{movieId}",
-            arguments = listOf(navArgument("movieId"){
-                type= NavType.IntType
+            arguments = listOf(navArgument("movieId") {
+                type = NavType.IntType
             })
 
         ) { backStackEntry ->
-            val movieId = backStackEntry.arguments?.getInt("movieId") ?: throw IllegalArgumentException("Movie ID missing")
+            val movieId = backStackEntry.arguments?.getInt("movieId")
+                ?: throw IllegalArgumentException("Movie ID missing")
 
             descripcionPeliAdmin(
-                onClick = {}, viewModel,navController, movieId)
+                onClick = {}, viewModel, navController, movieId
+            )
         }
 
 
 
 
-        composable(route=screenRoute.AgregarPeliAdmin.route){
-            AgregarPeliAdmin(viewModel,navController)
+        composable(route = screenRoute.AgregarPeliAdmin.route) {
+            AgregarPeliAdmin(viewModel, navController)
         }
 
-
-
-    }
-
-
-
-
-
+        composable(route=screenRoute.EditarPelicula.route){
+            editarPelicula(viewModel,navController)
+        }
 
     }
+
+
+}
 
 

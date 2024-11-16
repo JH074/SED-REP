@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -25,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.ic.cinefile.Navigation.screenRoute
 import com.ic.cinefile.R
 import com.ic.cinefile.components.botonGuardar
 import com.ic.cinefile.components.seccComentarios.comentarios
@@ -106,7 +107,9 @@ fun descripcionPeli(
             UiState.Loading -> {
                 // Puedes agregar algún indicador de carga general aquí si es necesario
             }
-            UiState.Ready -> {}
+            UiState.Ready -> {
+                //
+            }
             is UiState.Success -> {
                 val token = (addScreenState.value as UiState.Success).token
                 viewModel.fetchUserData() // Llama a getUserData para obtener la información del usuario
@@ -115,14 +118,11 @@ fun descripcionPeli(
         }
     }
 
-
     LaunchedEffect(movieId) {
         viewModel.getMovieById(movieId)
         viewModel.getAverageRating(movieId)
         viewModel.getRatingForUser(movieId)
     }
-
-
 
     Box(
         modifier = Modifier
@@ -163,7 +163,6 @@ fun descripcionPeli(
                 }
 
                 //Imagen de fondo
-
                 AsyncImage(
                     model = movie.posterUrl,
                     contentDescription = null,
@@ -208,19 +207,31 @@ fun descripcionPeli(
                                     text = movie.title ?: "Sin título", // Evitar null
                                     fontSize = 28.sp,
                                     color = Color.White,
-                                    modifier = Modifier.fillMaxWidth(0.85f)
+                                    modifier = Modifier.fillMaxWidth(0.78f)
                                 )
                                 //guardado o no
                                 if(userRole == "admin"){
-                                    IconButton(
-                                        onClick = { openAlertDialog.value = true },
-                                        modifier = Modifier.align(Alignment.Top)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = null,
-                                            tint = dark_red
-                                        )
+                                    Row {
+                                        IconButton(
+                                            onClick = { openAlertDialog.value = true },
+                                            modifier = Modifier.align(Alignment.Top)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = null,
+                                                tint = dark_red
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = { navController.navigate(screenRoute.EditarPelicula.route)},
+                                            modifier = Modifier.align(Alignment.Top)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Edit,
+                                                contentDescription = null,
+                                                tint = white
+                                            )
+                                        }
                                     }
                                 }else {
                                     botonGuardar(

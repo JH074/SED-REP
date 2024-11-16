@@ -67,15 +67,12 @@ class userCreateViewModel(
     private val userPreferences: UserPreferences
 ): ViewModel() {
 
-
-
     // Estados que gestionan el estado de la interfaz para login
     private val _uiState = MutableStateFlow<UiState>(UiState.Ready)
     val uiState : StateFlow<UiState> = _uiState
 
     private val _uiState2 = MutableStateFlow<UiState2>(UiState2.Ready)
     val uiState2 : StateFlow<UiState2> = _uiState2
-
 
 
     // Estados que gestionan la informacion de las screens
@@ -163,8 +160,6 @@ class userCreateViewModel(
     val authToken: StateFlow<String?> get() = _authToken
 
 
-
-
     init {
         viewModelScope.launch {
             userPreferences.authToken.collect { token ->
@@ -184,12 +179,7 @@ class userCreateViewModel(
         }
     }
 
-
-
-
     private var userRole: String? = null // Propiedad para almacenar el rol del usuario
-
-
 
     private val _deleteCommentState = MutableStateFlow<DeleteCommentState>(DeleteCommentState.Ready)
     val deleteCommentState: StateFlow<DeleteCommentState> = _deleteCommentState
@@ -1213,6 +1203,27 @@ class userCreateViewModel(
             }
         }
     }
+
+    /*fun updateMovie(movieId: Int, updatedMovieData: createMovieData) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _authToken.value?.let { token ->
+                try {
+                    val response = apiServer.methods.updateMovie("Bearer $token", movieId, updatedMovieData)
+                    Log.i("userUpdateViewModel", response.toString())
+                } catch (e: Exception) {
+                    when (e) {
+                        is HttpException -> {
+                            Log.i("userUpdateViewModel", e.message())
+                        }
+                        else -> {
+                            Log.i("userUpdateViewModel", e.toString())
+                        }
+                    }
+                }
+            }
+        }
+    }*/
+
 
 
     fun getMovieCreate() {

@@ -37,5 +37,7 @@ sealed class screenRoute(var route: String) {
     object ListaDeseos:screenRoute("ListaDeseos")
     object Configuraciones:screenRoute("Configuraciones")
 
+    object EditarPelicula: screenRoute("EditarPelicula")
+
 
 }
