@@ -16,6 +16,10 @@ const routes = {
     if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     return await commentController.getRepliesToComment(req, res);
   },
+  'PUT /moviesId/:moviedId/editComments/:id': async (req, res) => {
+  if (!(await authenticate(req, res, ['user', 'admin', 'superAdmin']))) return;
+  return await commentController.editComment(req, res);
+  },
   'DELETE /comments/:id': async (req, res) => {
     if (!(await authenticate(req, res, ['superAdmin']))) return;
     return await commentController.deleteComment(req, res);

@@ -247,4 +247,36 @@ controller.deleteReply = async (req, res) => {
   }
 };
 
+
+
+// Editar un comentario
+controller.editComment = async (req, res) => {
+  try {
+    const commentId = req.params.id; // ID del comentario a editar
+    const userId = req.user._id; // ID del usuario que intenta editar
+    const sanitizedBody = sanitizeObject(await parseRequestBody(req));
+    const { commentText } = sanitizedBody;
+
+    // Buscar el comentario en la base de datos
+    const comment = await commentUser.findById(commentId);
+    if (!comment) {
+      return sendJsonResponse(res, 404, { error: "Comentario no encontrado" });
+    }
+
+    // Verificar que el usuario es el autor del comentario
+    if (!comment.userId.equals(userId)) {
+      return sendJsonResponse(res, 403, { error: "No tienes permiso para editar este comentario" });
+    }
+
+    // Editar y guardar el comentario
+    comment.commentText = xss(commentText); // Sanitiza el nuevo texto
+    await comment.save();
+
+    sendJsonResponse(res, 200, { message: "Comentario actualizado exitosamente" });
+  } catch (error) {
+    sendJsonResponse(res, 500, { error: error.message });
+  }
+};
+
+
 module.exports = controller;
