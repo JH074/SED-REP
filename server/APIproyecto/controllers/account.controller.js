@@ -82,14 +82,12 @@ controller.login = async (req, res) => {
     await user.save();
 
     // Determinamos la ruta de redirección según el rol del usuario
-    const redirectPath = user.role === 'admin' ? '/user/admin/home' : '/user/home';
 
     // Enviamos la respuesta de éxito con el token y la ruta de redirección
     sendJsonResponse(res, 200, {
       message: 'Se ha iniciado sesión correctamente',
       token,
       role: user.role,
-      redirectPath // Añadimos el path de redirección
     });
   } catch (error) {
     // Manejo de errores

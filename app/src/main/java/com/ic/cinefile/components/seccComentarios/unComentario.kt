@@ -117,7 +117,7 @@ fun unComentario(
 
             is UiState.Success -> {
                 val token = (addScreenState.value as UiState.Success).token
-                viewModel.fetchUserData(token)
+                viewModel.fetchUserData()
                 viewModel.setStateToReady()
             }
         }
