@@ -67,6 +67,11 @@ import com.ic.cinefile.viewModel.GetMovieCreateState
 import com.ic.cinefile.viewModel.UiState
 import com.ic.cinefile.viewModel.userCreateViewModel
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
 
 @Composable
 fun descripcionPeli2(
@@ -152,17 +157,34 @@ fun descripcionPeli2(
                         dialogText = "Pelicula a eliminar: \n${movie.title}"
                     )
                 }
+                val bitmap = base64ToBitmap(movie.coverPhoto ?: "") // Convierte Base64 a Bitmap
 
                 //Imagen de fondo
 
-                AsyncImage(
-                    model = movie.coverPhoto,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxHeight(0.7f)
-                        .fillMaxWidth()
-                )
+                if (bitmap != null) {
+                    Image(
+                        painter = BitmapPainter(bitmap.asImageBitmap()), // Renderiza el Bitmap
+                        contentDescription = "Imagen de la película",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxHeight(0.7f)
+                            .fillMaxWidth()
+                    )
+                }else {
+                    // Muestra un marcador de posición si no se puede decodificar el Base64
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight(0.7f)
+                            .fillMaxWidth()
+                            .background(Color.Gray),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Imagen no disponible",
+                            color = Color.White
+                        )
+                    }
+                }
                 //Back
                 IconButton(
                     onClick = { navController.popBackStack() },
@@ -328,16 +350,6 @@ fun descripcionPeli2(
                                 color = Color.White
                             )
                         }
-
-//                        //TRAILER
-//                        item {
-//                            Spacer(modifier = Modifier.height(15.dp))
-//                            verTrailer(onClick = {
-//                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(movie.trailerUrl))
-//                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-//                                context.startActivity(intent)
-//                            })
-//                        }
 
                         //CALIFICACION
                         item {

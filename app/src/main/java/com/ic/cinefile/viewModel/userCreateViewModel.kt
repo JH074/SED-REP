@@ -43,6 +43,7 @@ import com.ic.cinefile.data.accountLoginData
 import com.ic.cinefile.data.accountRegisterData
 import com.ic.cinefile.data.commentData
 import com.ic.cinefile.data.createMovieData
+import com.ic.cinefile.data.editCommentData
 import com.ic.cinefile.data.searchMoviesData
 import com.ic.cinefile.data.witchListData
 import kotlinx.coroutines.Dispatchers
@@ -210,6 +211,9 @@ class userCreateViewModel(
 
     private val _logoutResult = MutableStateFlow<LogoutResult?>(null)
     val logoutResult: StateFlow<LogoutResult?> get() = _logoutResult
+
+    private val _editCommentState = MutableStateFlow<EditCommentState>(EditCommentState.Ready)
+    val editCommentState: StateFlow<EditCommentState> = _editCommentState
 
 
 
@@ -696,6 +700,62 @@ class userCreateViewModel(
         }
         }
     }
+
+
+    fun editComment(movieId: Int, commentId: String, updatedCommentText: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _authToken.value?.let { token ->
+                try {
+                    _editCommentState.value = EditCommentState.Loading
+
+                    // Crear el cuerpo del comentario actualizado
+                    val updatedComment = editCommentData(commentText = updatedCommentText)
+
+                    // Llamada a la API
+                    val response = apiServer.methods.editComment(
+                        authorization = "Bearer $token",
+                        movieId = movieId,
+                        commentId = commentId,
+                        updatedComment = updatedComment
+                    )
+
+                    if (response.isSuccessful) {
+                        // Si la respuesta es exitosa, actualizar el estado a Success
+                        val message = response.body()?.message ?: "Comentario actualizado con éxito"
+                        _editCommentState.value = EditCommentState.Success(message)
+                    } else {
+                        // Si la respuesta falla, actualizar el estado a Error
+                        _editCommentState.value =
+                            EditCommentState.Error("Error: ${response.message()}")
+                    }
+                } catch (e: Exception) {
+                    when (e) {
+                        is HttpException -> {
+                            // Manejo de errores HTTP
+                            Log.e("userCreateViewModel", "Error HTTP: ${e.message()}")
+                            _editCommentState.value =
+                                EditCommentState.Error("Error HTTP: ${e.message()}")
+                        }
+
+                        else -> {
+                            // Manejo de errores generales
+                            Log.e("userCreateViewModel", "Error: ${e.message}")
+                            _editCommentState.value =
+                                EditCommentState.Error("Error: ${e.message}")
+                        }
+                    }
+                }
+            } ?: run {
+                // Manejo del caso en el que no hay token disponible
+                _editCommentState.value =
+                    EditCommentState.Error("Token no disponible. Por favor, inicia sesión nuevamente.")
+            }
+        }
+    }
+    fun resetEditCommentState() {
+        _editCommentState.value = EditCommentState.Ready
+    }
+
 
     fun getComments(movieId: Int) {
 
@@ -1374,6 +1434,12 @@ class userCreateViewModel(
         }
     }
 
+    private val _base64CoverPhoto = mutableStateOf<String?>(null)
+    val base64CoverPhoto: State<String?> = _base64CoverPhoto
+
+    fun setBase64CoverPhoto(base64Image: String) {
+        _base64CoverPhoto.value = base64Image
+    }
 
 }
 
@@ -1431,6 +1497,14 @@ sealed class CommentPostState {
     data class Success(val message: String) : CommentPostState()
     data class Error(val message: String) : CommentPostState()
 }
+
+sealed class EditCommentState {
+    object Loading : EditCommentState()
+    object Ready : EditCommentState()
+    data class Success(val message: String) : EditCommentState()
+    data class Error(val errorMessage: String) : EditCommentState()
+}
+
 
 // Selladas para manejar los estados de la lista de comentarios
 sealed class CommentListState {

@@ -2,6 +2,8 @@ package com.ic.cinefile.screens
 
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Icon
@@ -79,6 +81,11 @@ import com.ic.cinefile.viewModel.UiState
 import com.ic.cinefile.viewModel.UserDataState
 import com.ic.cinefile.viewModel.userCreateViewModel
 import kotlinx.coroutines.launch
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,6 +105,7 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
 // Variable para almacenar el ID de la película seleccionada para eliminar
     var selectedMovieId by remember { mutableStateOf<String?>(null) }
     //Modal de eliminar:
+
 
     val openAlertDialog = remember { mutableStateOf(false) }
 
@@ -547,6 +555,10 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
                                     LazyRow {
                                         items(movies.size) { index ->
                                             val movie = movies[index]
+                                            val bitmap = base64ToBitmap(
+                                                movie.coverPhoto ?: ""
+                                            ) // Convierte Base64 a Bitmap
+
                                             Box(
                                                 modifier = Modifier
                                                     .padding(4.dp)
@@ -558,20 +570,39 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
                                                     }
                                             )
                                             {
-                                                AsyncImage(
-                                                    model = movie.coverPhoto,
-                                                    contentDescription = null,
-                                                    modifier = Modifier
-                                                        .padding(4.dp)
-                                                        .height(200.dp)
-                                                        .width(150.dp)
-                                                )
+                                                // Agrega el prefijo si falta en la cadena Base64
+                                                if (bitmap != null) {
+                                                    // Usa BitmapPainter para renderizar el Bitmap
+                                                    Image(
+                                                        painter = BitmapPainter(bitmap.asImageBitmap()),
+                                                        contentDescription = "Imagen de la película",
+                                                        modifier = Modifier
+                                                            .fillMaxSize()
+                                                            .clip(RoundedCornerShape(8.dp)),
+                                                        contentScale = ContentScale.Crop // Ajustar la imagen al contenedor
+                                                    )
+                                                } else {
+                                                    // Muestra un marcador de posición si el bitmap no se puede decodificar
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxSize()
+                                                            .background(Color.Gray),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text(
+                                                            text = "Sin imagen",
+                                                            color = Color.White
+                                                        )
+                                                    }
+                                                }
                                                 IconButton(
                                                     onClick = {
+
                                                         selectedMovieId =
                                                             movie._id // Ahora 'movie.id' es un Int
                                                         openAlertDialog.value = true
                                                     },
+
                                                     modifier = Modifier
                                                         .align(Alignment.TopEnd)
                                                 ) {
@@ -675,7 +706,6 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
 
                     } else {
 
-
                         when (userDataState) {
                             is UserDataState.Success -> {
                                 val movieCategories =
@@ -741,17 +771,12 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
 
                             else -> {}
                         }
-
-
                     }
-
-
                 }
             }
         }
     }
 }
-
 
 @Composable
 fun LoadingAnimation() {
@@ -765,5 +790,19 @@ fun LoadingAnimation() {
         CircularProgressIndicator(
             color = Color.White, modifier = Modifier.size(36.dp)
         )
+    }
+}
+
+
+fun base64ToBitmap(base64Str: String): Bitmap? {
+    return try {
+        val decodedBytes = Base64.decode(
+            base64Str.substringAfter("base64,"), // Elimina el prefijo "data:image/jpeg;base64,"
+            Base64.DEFAULT
+        )
+        BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+    } catch (e: IllegalArgumentException) {
+        e.printStackTrace()
+        null
     }
 }

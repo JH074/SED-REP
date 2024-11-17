@@ -46,6 +46,66 @@ controller.movieData = async (req, res) => {
     }
 };
 
+controller.searchActorsByName = async (req, res) => {
+  try {
+    // Obtener el nombre del actor desde los parámetros de la URL
+    const actorName = req.params.actorName;
+
+    // Llamar al servicio para buscar actores por nombre
+    const actors = await movieServices.searchActorsByNameAPI(actorName);
+
+    if (!actors || actors.length === 0) {
+      return sendJsonResponse(res, 404, { error: "No se encontraron actores con el nombre especificado." });
+    }
+
+    // Enviar los actores encontrados como respuesta
+    sendJsonResponse(res, 200, { actors });
+  } catch (error) {
+    // Enviar respuesta de error
+    sendJsonResponse(res, 500, { error: error.message });
+  }
+};
+
+controller.editMovie = async (req, res) => {
+  try {
+      const { movieId } = req.params; // Obtener el ID de la película desde la URL
+      const movieData = await parseRequestBody(req);
+
+      if (!movieData || typeof movieData !== 'object') {
+          return sendJsonResponse(res, 400, { error: "Invalid or missing request body" });
+      }
+
+      // Sanitizar los datos de entrada
+      const updatedData = {
+          title: xss(movieData.title || ""),
+          synopsis: xss(movieData.synopsis || ""),
+          coverPhoto: xss(movieData.coverPhoto || ""),
+      };
+
+      // Validar que los campos actualizables no estén vacíos
+      if (!updatedData.title && !updatedData.synopsis && !updatedData.coverPhoto) {
+          return sendJsonResponse(res, 400, { error: "No valid fields to update" });
+      }
+
+      // Actualizar la película en la base de datos
+      const updatedMovie = await Movie.findOneAndUpdate(
+          { id: movieId },
+          { $set: updatedData },
+          { new: true } // Devuelve el documento actualizado
+      );
+
+      if (!updatedMovie) {
+          return sendJsonResponse(res, 404, { error: "Película no encontrada" });
+      }
+
+      sendJsonResponse(res, 200, { message: "Película actualizada exitosamente", movie: updatedMovie });
+  } catch (error) {
+      sendJsonResponse(res, 500, { error: error.message });
+  }
+};
+
+
+
 
 
 controller.getRatedMovies = async (req, res) => {

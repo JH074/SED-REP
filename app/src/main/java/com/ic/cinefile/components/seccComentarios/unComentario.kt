@@ -57,6 +57,7 @@ import com.ic.cinefile.ui.theme.dark_red
 import com.ic.cinefile.ui.theme.grisComment
 import com.ic.cinefile.ui.theme.white
 import com.ic.cinefile.viewModel.DeleteCommentState
+import com.ic.cinefile.viewModel.EditCommentState
 import com.ic.cinefile.viewModel.RepliesToCommentState
 import com.ic.cinefile.viewModel.UiState
 import com.ic.cinefile.viewModel.userCreateViewModel
@@ -77,11 +78,10 @@ fun unComentario(
 ) {
     var showResponses by remember { mutableStateOf(false) }
     val bottomSheetState = rememberModalBottomSheetState()
-    val userDataState by viewModel.userDataState.collectAsState()
     val sendComment by viewModel.postCommentState
     val repliesState by viewModel.repliesToCommentState.collectAsState()
     var commentText by remember { mutableStateOf(sendComment.commentText) }
-    val commentState by viewModel.commentsState.collectAsState()
+    val editCommentState by viewModel.editCommentState.collectAsState()
 
     // Formato de entrada para parsear la fecha y hora
     val inputFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
@@ -97,6 +97,7 @@ fun unComentario(
     val addScreenState = viewModel.uiState.collectAsState()
 
     val userRole = viewModel.getUserRole()
+
 
     val context = LocalContext.current
     LaunchedEffect(addScreenState.value) {
@@ -116,12 +117,14 @@ fun unComentario(
             }
 
             is UiState.Success -> {
-                val token = (addScreenState.value as UiState.Success).token
                 viewModel.fetchUserData()
                 viewModel.setStateToReady()
             }
         }
     }
+
+
+
     LaunchedEffect(deleteCommentState) {
         when (deleteCommentState) {
             is DeleteCommentState.Error -> {
@@ -150,6 +153,32 @@ fun unComentario(
     var isEditing by remember { mutableStateOf(false) }  // Estado para habilitar la edición
     var editableCommentText by remember { mutableStateOf(description) } // Texto editable
     var isEdited by remember { mutableStateOf(false) } //  Estado para indicar si fue editado
+
+    LaunchedEffect(editCommentState) {
+        when (editCommentState) {
+            is EditCommentState.Success -> {
+                val message = (editCommentState as EditCommentState.Success).message
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                isEdited = true // Indicar que el comentario fue editado
+                isEditing = false // Salir del modo de edición
+                viewModel.resetEditCommentState() // Restablecer el estado
+            }
+
+            is EditCommentState.Error -> {
+                val message = (editCommentState as EditCommentState.Error).errorMessage
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                viewModel.resetEditCommentState() // Restablecer el estado
+            }
+
+            EditCommentState.Loading -> {
+                Toast.makeText(context, "Actualizando comentario...", Toast.LENGTH_SHORT).show()
+            }
+
+            else -> {
+                // No hacer nada
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -248,7 +277,7 @@ fun unComentario(
             if (isEditing) {
                 IconButton(
                     onClick = {
-                        //viewModel.updateComment(id, editableCommentText)
+                        viewModel.editComment(movieId, id, editableCommentText)
                         isEditing = false
                         isEdited = true // Marcar como editado al guardar
                     }

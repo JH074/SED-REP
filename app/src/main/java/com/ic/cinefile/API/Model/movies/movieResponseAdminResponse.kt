@@ -16,7 +16,7 @@ data class MovieAdmin(
     @SerializedName("title")
     val title: String,
 
-    @SerializedName("sypnosis")
+    @SerializedName("synopsis")
     val synopsis: String,
 
     @SerializedName("duration")
