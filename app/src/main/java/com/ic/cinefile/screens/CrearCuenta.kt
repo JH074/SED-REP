@@ -22,6 +22,7 @@ import androidx.navigation.NavController
 import com.ic.cinefile.Navigation.screenRoute
 import com.ic.cinefile.ui.theme.black
 import com.ic.cinefile.ui.theme.white
+import com.ic.cinefile.viewModel.CheckEmailState
 import com.ic.cinefile.viewModel.userCreateViewModel
 import java.util.regex.Pattern
 
@@ -44,7 +45,40 @@ fun CrearCuenta(viewModel: userCreateViewModel, navController: NavController) {
     val accountData by viewModel.accountcreateAPIData
     var email by remember { mutableStateOf(accountData.email) }
     var password by remember { mutableStateOf(accountData.password) }
+    val checkEmailState by viewModel.checkEmailState.collectAsState()
 
+    var emailError by remember { mutableStateOf("") }
+    var isEmailValid by remember { mutableStateOf(false) }
+    LaunchedEffect(email) {
+        if (isValidEmail(email)) {
+            viewModel.checkEmailExists(email)
+        } else {
+            isEmailValid = false
+            emailError = "Correo inválido"
+        }
+    }
+    LaunchedEffect(checkEmailState) {
+        when (checkEmailState) {
+            is CheckEmailState.Success -> {
+                val state = checkEmailState as CheckEmailState.Success
+                if (state.exists) {
+                    emailError = "Este correo ya está registrado. Intenta con otro."
+                    isEmailValid = false
+                } else {
+                    emailError = ""
+                    isEmailValid = true
+                }
+            }
+            is CheckEmailState.Error -> {
+                emailError = "Error al verificar el correo."
+                isEmailValid = false
+            }
+            else -> {
+                emailError = ""
+                isEmailValid = false
+            }
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -69,7 +103,7 @@ fun CrearCuenta(viewModel: userCreateViewModel, navController: NavController) {
             modifier = Modifier.width(300.dp),
             value = email,
             onValueChange = {
-                if (it.length <= 15) {
+                if (it.length <= 35) {
                     email = it
                 }
             },
@@ -97,8 +131,18 @@ fun CrearCuenta(viewModel: userCreateViewModel, navController: NavController) {
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
             ),
-            singleLine = true
+            singleLine = true,
+            isError = emailError.isNotEmpty()
+
         )
+        if (emailError.isNotEmpty()) {
+            Text(
+                text = emailError,
+                color = Color.Red,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
 
         Spacer(modifier = Modifier.height(15.dp))
 
@@ -169,6 +213,8 @@ fun CrearCuenta(viewModel: userCreateViewModel, navController: NavController) {
                 containerColor = white,
                 contentColor = black
             ),
+            enabled = email.isNotEmpty() && isEmailValid && password.isNotEmpty() && isValidPassword(password)
+
         ) {
             Text(
                 text = "Registrarse",

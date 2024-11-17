@@ -27,6 +27,7 @@ import com.ic.cinefile.API.Model.users.MarkAsReadResponse
 import com.ic.cinefile.API.Model.users.NotificationResponse
 import com.ic.cinefile.API.Model.users.UserLoginResponse
 import com.ic.cinefile.API.Model.users.accountCreateResponse
+import com.ic.cinefile.API.Model.users.checkResponse
 import com.ic.cinefile.data.RatingData
 import com.ic.cinefile.data.accountLoginData
 import com.ic.cinefile.data.accountRegisterData
@@ -62,7 +63,19 @@ interface Methods {
     suspend fun loginAccount(
         @Body userLoginData: accountLoginData
     ):UserLoginResponse
+    // Ruta para verificar si un nombre de usuario existe
+    @Headers("Content-Type: application/json")
+    @POST("api/account/check-username")
+    suspend fun checkUsernameExists(
+        @Body usernameData: Map<String, String> // Enviar el cuerpo como JSON
+    ): Response<checkResponse>
 
+    // Ruta para verificar si un correo existe
+    @Headers("Content-Type: application/json")
+    @POST("api/account/check-email")
+    suspend fun checkEmailExists(
+        @Body emailData: Map<String, String> // Enviar el cuerpo como JSON
+    ): Response<checkResponse>
     @Headers("Content-Type: application/json")
     @POST("api/account/logout")
     suspend fun logoutAccount(
@@ -242,7 +255,7 @@ interface Methods {
         ): Response<movieResponseAdminResponse>
 
     @Headers(value = ["Content-Type:application/json"])
-    @PUT("api/account/home/createMovies/{movieId}")
+    @PUT("api/movies/editMovie/moviesId/{movieId}")
     suspend fun editMovie(
         @Header("Authorization") authorization: String,
         @Path("movieId") movieId: String,

@@ -13,6 +13,12 @@ const routes = {
   'POST /login': async (req, res) => {
     await AccountController.login(req, res)
   },
+  'POST /check-email': async (req, res) => {
+    await AccountController.checkEmailExists(req, res);
+  },
+  'POST /check-username': async (req, res) => {
+    await AccountController.checkUsernameExists(req, res);
+  },
   'POST /logout': async (req, res) => {
     if (!(await authenticate(req, res, ['user', 'admin','superAdmin']))) return;
     return await AccountController.logout(req, res);
