@@ -1,11 +1,9 @@
 package com.ic.cinefile.screens
 
-import android.content.Intent
-import android.net.Uri
+
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -47,25 +44,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
+
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.ic.cinefile.R
-import com.ic.cinefile.components.LoadingProgressDialog
 import com.ic.cinefile.components.botonGuardar
 import com.ic.cinefile.components.seccComentarios.comentarios
 import com.ic.cinefile.components.ratingStars
-import com.ic.cinefile.components.verTrailer
 import com.ic.cinefile.data.witchListData
 import com.ic.cinefile.screens.Administrador.DeleteDialogAdmin
 import com.ic.cinefile.ui.theme.black
 import com.ic.cinefile.ui.theme.dark_red
 import com.ic.cinefile.ui.theme.light_yellow
-import com.ic.cinefile.ui.theme.montserratFamily
 import com.ic.cinefile.ui.theme.sky_blue
 import com.ic.cinefile.ui.theme.white
 import com.ic.cinefile.viewModel.AverageRatingForUserState
@@ -77,6 +70,11 @@ import com.ic.cinefile.viewModel.UiState
 import com.ic.cinefile.viewModel.UserRatingState
 import com.ic.cinefile.viewModel.userCreateViewModel
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
 
 @Composable
 fun descripcionPeli2(
@@ -169,17 +167,34 @@ fun descripcionPeli2(
                         dialogText = "Pelicula a eliminar: \n${movie.title}"
                     )
                 }
+                val bitmap = base64ToBitmap(movie.coverPhoto ?: "") // Convierte Base64 a Bitmap
 
                 //Imagen de fondo
 
-                AsyncImage(
-                    model = movie.coverPhoto,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxHeight(0.7f)
-                        .fillMaxWidth()
-                )
+                if (bitmap != null) {
+                    Image(
+                        painter = BitmapPainter(bitmap.asImageBitmap()), // Renderiza el Bitmap
+                        contentDescription = "Imagen de la película",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxHeight(0.7f)
+                            .fillMaxWidth()
+                    )
+                }else {
+                    // Muestra un marcador de posición si no se puede decodificar el Base64
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight(0.7f)
+                            .fillMaxWidth()
+                            .background(Color.Gray),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Imagen no disponible",
+                            color = Color.White
+                        )
+                    }
+                }
                 //Back
                 IconButton(
                     onClick = {navController.popBackStack() },
@@ -333,16 +348,6 @@ fun descripcionPeli2(
                                 color = Color.White
                             )
                         }
-
-//                        //TRAILER
-//                        item {
-//                            Spacer(modifier = Modifier.height(15.dp))
-//                            verTrailer(onClick = {
-//                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(movie.trailerUrl))
-//                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-//                                context.startActivity(intent)
-//                            })
-//                        }
 
                         //CALIFICACION
                         item {

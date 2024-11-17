@@ -1,6 +1,11 @@
 package com.ic.cinefile.screens.Administrador
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.Base64
+
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -82,6 +87,8 @@ import com.ic.cinefile.viewModel.userCreateViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -181,7 +188,19 @@ fun AgregarPeliAdmin(
         val foto = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.PickVisualMedia(),
             onResult = { resultUri: Uri? ->
-                coverPhoto = resultUri?.toString() ?: ""
+                resultUri?.let { uri ->
+                    // Mostrar directamente la URI seleccionada en la previsualización
+                    coverPhoto = uri.toString()
+
+                    // Convertir la URI a Base64 para su posterior uso en el backend
+                    val base64Image = uriToBase64(context, uri)
+                    if (base64Image != null) {
+                        // Guarda la imagen convertida para su uso posterior
+                        viewModel.setBase64CoverPhoto("data:image/jpeg;base64,$base64Image")
+                    } else {
+                        Toast.makeText(context, "Error al procesar la imagen", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         )
 
@@ -199,19 +218,11 @@ fun AgregarPeliAdmin(
                 modifier = Modifier.padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
-                val coverPhotoToShow = if (coverPhoto.isNullOrEmpty()) {
-                    "https://ih1.redbubble.net/image.1893341687.8294/fposter,small,wall_texture,product,750x1000.jpg"
-                } else {
-                    AsyncImage(
-                        model = coverPhoto,
-                        contentDescription = null,
-                        modifier = Modifier.size(150.dp, 200.dp)
-                    )
-                }
                 AsyncImage(
-                    model = coverPhotoToShow,
+                    model = coverPhoto, // Usar directamente la URI para mostrar la imagen seleccionada
                     contentDescription = null,
-                    modifier = Modifier.size(150.dp, 200.dp)
+                    modifier = Modifier.size(150.dp, 200.dp),
+                    contentScale = ContentScale.Crop // Asegurar que la imagen se escale correctamente
                 )
                 IconButton(
                     onClick = {
@@ -578,8 +589,8 @@ fun AgregarPeliAdmin(
                         synopsis = sypnosis,
                         duration = duration,
                         actors = selectedActors,
-                        coverPhoto = if ((coverPhoto ?: "").startsWith("https://")) coverPhoto
-                            ?: "" else "", // Verifica HTTPS en la URL
+                        coverPhoto = viewModel.base64CoverPhoto.value, // Usar la imagen en Base64
+                         // Verifica HTTPS en la URL
                         categories = generosSeleccionados
                     )
                     // Llamar al método en tu ViewModel para guardar la película
@@ -656,6 +667,22 @@ fun ActorItem(actorName: ActorName, onClick: () -> Unit = {}) {
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 6.dp)
         )
+    }
+}
+
+
+
+fun uriToBase64(context: Context, uri: Uri): String? {
+    return try {
+        val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
+        val bitmap = BitmapFactory.decodeStream(inputStream)
+        val outputStream = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+        val byteArray = outputStream.toByteArray()
+        Base64.encodeToString(byteArray, Base64.DEFAULT) // Aquí usa Base64
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
     }
 }
 
