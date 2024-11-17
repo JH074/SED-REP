@@ -398,7 +398,7 @@ fun AgregarPeliAdmin(
                 value = buscador,
                 onValueChange = { newBuscador ->
                     // Valida que el texto ingresado cumpla con los criterios de seguridad
-                    if (newBuscador.length <= 50 && newBuscador.matches(validActorNameRegex)) {
+                    if (newBuscador.length <= 50 && (newBuscador.isEmpty() || newBuscador.matches(validActorNameRegex))) {
                         buscador = newBuscador
 
                         // Cancelar cualquier búsqueda en curso

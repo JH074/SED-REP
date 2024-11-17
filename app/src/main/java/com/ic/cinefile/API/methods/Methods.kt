@@ -10,6 +10,7 @@ import com.ic.cinefile.API.Model.movies.UserRatingResponse
 import com.ic.cinefile.API.Model.movies.actorNameResponse
 import com.ic.cinefile.API.Model.movies.createMovieResponse
 import com.ic.cinefile.API.Model.movies.editCommentResponse
+import com.ic.cinefile.API.Model.movies.editMovieResponse
 import com.ic.cinefile.API.Model.movies.getCommentResponse
 import com.ic.cinefile.API.Model.movies.homeUserResponse
 import com.ic.cinefile.API.Model.movies.mostViewMoviesResponse
@@ -239,6 +240,13 @@ interface Methods {
         @Header("Authorization") authorization: String,
         ): Response<movieResponseAdminResponse>
 
+    @Headers(value = ["Content-Type:application/json"])
+    @PUT("api/account/home/createMovies/{movieId}")
+    suspend fun editMovie(
+        @Header("Authorization") authorization: String,
+        @Path("movieId") movieId: String,
+        @Body editMovieData: editMovieData
+    ): Response<editMovieResponse>
 
     @Headers("Content-Type: application/json")
     @GET("api/account/user/admin/home/{id}")

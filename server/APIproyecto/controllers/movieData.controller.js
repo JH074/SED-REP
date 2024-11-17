@@ -68,44 +68,78 @@ controller.searchActorsByName = async (req, res) => {
 
 controller.editMovie = async (req, res) => {
   try {
-      const { movieId } = req.params; // Obtener el ID de la película desde la URL
-      const movieData = await parseRequestBody(req);
+    // Obtenemos el ID de la película desde `req.params`
+    const movieId = req.params.id;
 
-      if (!movieData || typeof movieData !== 'object') {
-          return sendJsonResponse(res, 400, { error: "Invalid or missing request body" });
-      }
+    // Parseamos el cuerpo de la solicitud
+    const movieData = await parseRequestBody(req);
 
-      // Sanitizar los datos de entrada
-      const updatedData = {
-          title: xss(movieData.title || ""),
-          synopsis: xss(movieData.synopsis || ""),
-          coverPhoto: xss(movieData.coverPhoto || ""),
-      };
+    if (!movieData || typeof movieData !== 'object') {
+      return sendJsonResponse(res, 400, { error: 'Cuerpo de la solicitud inválido o ausente' });
+    }
 
-      // Validar que los campos actualizables no estén vacíos
-      if (!updatedData.title && !updatedData.synopsis && !updatedData.coverPhoto) {
-          return sendJsonResponse(res, 400, { error: "No valid fields to update" });
-      }
+    // Inicializamos `updatedData` y agregamos solo los campos presentes
+    const updatedData = {};
 
-      // Actualizar la película en la base de datos
-      const updatedMovie = await Movie.findOneAndUpdate(
-          { id: movieId },
-          { $set: updatedData },
-          { new: true } // Devuelve el documento actualizado
-      );
+    if (movieData.title) {
+      updatedData.title = xss(movieData.title);
+    }
 
-      if (!updatedMovie) {
-          return sendJsonResponse(res, 404, { error: "Película no encontrada" });
-      }
+    if (movieData.synopsis) {
+      updatedData.synopsis = xss(movieData.synopsis);
+    }
 
-      sendJsonResponse(res, 200, { message: "Película actualizada exitosamente", movie: updatedMovie });
+    if (movieData.coverPhoto) {
+      updatedData.coverPhoto = xss(movieData.coverPhoto);
+    }
+
+    // Validamos que al menos un campo actualizable esté presente
+    if (Object.keys(updatedData).length === 0) {
+      return sendJsonResponse(res, 400, { error: 'No hay campos válidos para actualizar' });
+    }
+
+    // Verificamos si la película existe en la base de datos
+    const movie = await Movie.findById(movieId);
+    if (!movie) {
+      return sendJsonResponse(res, 404, { error: 'Película no encontrada' });
+    }
+
+    // Actualizamos la película
+    Object.assign(movie, updatedData);
+    await movie.save();
+
+    // Enviamos una respuesta de confirmación
+    sendJsonResponse(res, 200, { message: 'Película actualizada exitosamente' });
   } catch (error) {
-      sendJsonResponse(res, 500, { error: error.message });
+    // Enviamos una respuesta de error
+    sendJsonResponse(res, 500, { error: error.message });
   }
 };
 
 
 
+// Eliminar una película por su ID
+controller.deleteMovie = async (req, res) => {
+  try {
+    // Obtenemos el ID de la película desde `req.params`
+    const movieId = req.params.id;
+
+    // Verificamos si la película existe en la base de datos
+    const movie = await Movie.findById(movieId);
+    if (!movie) {
+      return sendJsonResponse(res, 404, { error: 'Película no encontrada' });
+    }
+
+    // Eliminamos la película
+    await Movie.findByIdAndDelete(movieId);
+
+    // Enviamos una respuesta de éxito
+    sendJsonResponse(res, 200, { message: 'Película eliminada exitosamente' });
+  } catch (error) {
+    // Enviamos una respuesta de error
+    sendJsonResponse(res, 500, { error: error.message });
+  }
+};
 
 
 controller.getRatedMovies = async (req, res) => {
@@ -141,28 +175,7 @@ controller.findAll = async (req, res) => {
   }
 };
 
-// Eliminar una película por su ID
-controller.deleteMovie = async (req, res) => {
-  try {
-    // Obtenemos el ID de la película desde `req.params`
-    const movieId = req.params.id;
 
-    // Verificamos si la película existe en la base de datos
-    const movie = await Movie.findById(movieId);
-    if (!movie) {
-      return sendJsonResponse(res, 404, { error: 'Película no encontrada' });
-    }
-
-    // Eliminamos la película
-    await Movie.findByIdAndDelete(movieId);
-
-    // Enviamos una respuesta de éxito
-    sendJsonResponse(res, 200, { message: 'Película eliminada exitosamente' });
-  } catch (error) {
-    // Enviamos una respuesta de error
-    sendJsonResponse(res, 500, { error: error.message });
-  }
-};
 
 controller.getMovieByAdminId = async (req, res) => {
   try {
