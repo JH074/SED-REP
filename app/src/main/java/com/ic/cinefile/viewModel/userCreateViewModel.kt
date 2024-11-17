@@ -44,6 +44,7 @@ import com.ic.cinefile.data.accountRegisterData
 import com.ic.cinefile.data.commentData
 import com.ic.cinefile.data.createMovieData
 import com.ic.cinefile.data.editCommentData
+import com.ic.cinefile.data.editMovieData
 import com.ic.cinefile.data.searchMoviesData
 import com.ic.cinefile.data.witchListData
 import kotlinx.coroutines.Dispatchers
@@ -160,6 +161,8 @@ class userCreateViewModel(
     private val _authToken = MutableStateFlow<String?>(null)
     val authToken: StateFlow<String?> get() = _authToken
 
+    private val _editMovieState = MutableStateFlow<EditMovieState>(EditMovieState.Ready)
+    val editMovieState: StateFlow<EditMovieState> = _editMovieState
 
     init {
         viewModelScope.launch {
@@ -1264,25 +1267,43 @@ class userCreateViewModel(
         }
     }
 
-    /*fun updateMovie(movieId: Int, updatedMovieData: createMovieData) {
+    // Función para editar una película
+    fun editMovie(movieId: String, editMovieData: editMovieData) {
         viewModelScope.launch(Dispatchers.IO) {
+            // Cambiar el estado a Loading mientras se realiza la operación
+            _editMovieState.value = EditMovieState.Loading
+
             _authToken.value?.let { token ->
                 try {
-                    val response = apiServer.methods.updateMovie("Bearer $token", movieId, updatedMovieData)
-                    Log.i("userUpdateViewModel", response.toString())
-                } catch (e: Exception) {
-                    when (e) {
-                        is HttpException -> {
-                            Log.i("userUpdateViewModel", e.message())
-                        }
-                        else -> {
-                            Log.i("userUpdateViewModel", e.toString())
-                        }
+                    // Realizar la llamada a la API para editar la película
+                    val response = apiServer.methods.editMovie(
+                        authorization = "Bearer $token",
+                        movieId = movieId,
+                        editMovieData = editMovieData
+                    )
+
+                    // Verificar si la respuesta fue exitosa
+                    if (response.isSuccessful) {
+                        _editMovieState.value = EditMovieState.Success("Película actualizada exitosamente")
+                    } else {
+                        // Manejar errores de respuesta no exitosa
+                        val errorBody = response.errorBody()?.string()
+                        val errorMsg = errorBody ?: "Error desconocido"
+                        _editMovieState.value = EditMovieState.Error(errorMsg)
                     }
+                } catch (e: HttpException) {
+                    // Manejar errores de red (por ejemplo, error 404, 500, etc.)
+                    _editMovieState.value = EditMovieState.Error("Error de red: ${e.message()}")
+                } catch (e: Exception) {
+                    // Manejar otros errores inesperados
+                    _editMovieState.value = EditMovieState.Error("Error inesperado: ${e.message}")
                 }
+            } ?: run {
+                // Si el token es nulo, manejar el caso adecuadamente
+                _editMovieState.value = EditMovieState.Error("Token no disponible")
             }
         }
-    }*/
+    }
 
 
 
@@ -1618,6 +1639,12 @@ sealed class CreateMovie {
     data object Ready : CreateMovie()
     data class Success (val data:createMovieData) : CreateMovie()
     data class Error (val msg : String) : CreateMovie()
+}
+sealed class EditMovieState {
+    object Loading : EditMovieState()
+    object Ready : EditMovieState()
+    data class Success(val message: String) : EditMovieState()
+    data class Error(val message: String) : EditMovieState()
 }
 
 

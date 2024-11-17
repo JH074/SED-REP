@@ -75,7 +75,7 @@ const accountSchema = SchemaUsers(
       genre: { type: String },
 
     }],
-    role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    role: { type: String, enum: ['user', 'admin','superAdmin'], default: 'user' },
     recentSearches: [{
       query: String,
       timestamp: { type: Date, default: Date.now }
