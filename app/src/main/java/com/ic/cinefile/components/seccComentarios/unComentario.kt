@@ -262,7 +262,7 @@ fun unComentario(
                 }
             }
 
-            if (userRole == "admin") {
+            if (userRole == "superAdmin") {
                 //Eliminar comentario
                 IconButton(
                     onClick = {

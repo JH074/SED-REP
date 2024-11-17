@@ -5,7 +5,6 @@ import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Icon
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -15,7 +14,6 @@ import androidx.compose.ui.unit.dp
 import com.ic.cinefile.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -30,7 +28,6 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
@@ -45,9 +42,7 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
@@ -59,17 +54,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
@@ -83,7 +75,6 @@ import com.ic.cinefile.ui.theme.white
 import com.ic.cinefile.viewModel.DeleteMovieState
 import com.ic.cinefile.viewModel.GetMovieCreate
 import com.ic.cinefile.viewModel.LogoutResult
-import com.ic.cinefile.viewModel.RecentMoviestState
 import com.ic.cinefile.viewModel.UiState
 import com.ic.cinefile.viewModel.UserDataState
 import com.ic.cinefile.viewModel.userCreateViewModel
@@ -114,17 +105,21 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
     LaunchedEffect(deleteMovieState) {
         when (deleteMovieState) {
             is DeleteMovieState.Success -> {
-                Toast.makeText(context, "Película eliminada exitosamente", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Película eliminada exitosamente", Toast.LENGTH_SHORT)
+                    .show()
                 viewModel.resetDeleteMovieState()
                 // Actualiza la lista de películas después de eliminar
                 viewModel.getMovieCreate()
             }
+
             is DeleteMovieState.Error -> {
                 val errorMessage = (deleteMovieState as DeleteMovieState.Error).errorMessage
                 Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
                 viewModel.resetDeleteMovieState()
             }
-            else -> { /* No hacer nada para otros estados */ }
+
+            else -> { /* No hacer nada para otros estados */
+            }
         }
     }
 
@@ -165,8 +160,9 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
             UiState.Ready -> {
                 //
             }
+
             is UiState.Success -> {
-              // Llama a getUserData para obtener la información del usuario
+                // Llama a getUserData para obtener la información del usuario
                 viewModel.setStateToReady()
 
             }
@@ -190,10 +186,12 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
                     popUpTo(0)
                 }
             }
+
             is LogoutResult.Error -> {
                 val message = (logoutResult as LogoutResult.Error).message
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
             }
+
             else -> {
                 //
             }
@@ -258,30 +256,31 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
             }
             Divider()
             Spacer(modifier = Modifier.height(10.dp))
-            if(userRole=="admin"){
+            if (userRole == "admin" || userRole == "superAdmin") {
                 Text(text = "")
-            }else{
-                NavigationDrawerItem(label = {
-                    Text(
-                        text = "Calificadas", color = white, fontSize = 16.sp
+            } else {
+                NavigationDrawerItem(
+                    label = {
+                        Text(
+                            text = "Calificadas", color = white, fontSize = 16.sp
+                        )
+                    }, selected = false, icon = {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = white
+                        )
+                    }, onClick = {
+                        coroutineScope.launch {
+                            drawerState.close()
+                        }
+                        navController.navigate(screenRoute.Calificadas.route) {
+                            popUpTo(0)
+                        }
+                    }, colors = NavigationDrawerItemDefaults.colors(
+                        unselectedContainerColor = Color.Transparent,
+                        selectedContainerColor = Color.Transparent
                     )
-                }, selected = false, icon = {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = null,
-                        tint = white
-                    )
-                }, onClick = {
-                    coroutineScope.launch {
-                        drawerState.close()
-                    }
-                    navController.navigate(screenRoute.Calificadas.route) {
-                        popUpTo(0)
-                    }
-                }, colors = NavigationDrawerItemDefaults.colors(
-                    unselectedContainerColor = Color.Transparent,
-                    selectedContainerColor = Color.Transparent
-                )
                 )
                 NavigationDrawerItem(
                     label = { Text(text = "Lista de deseos", color = white, fontSize = 16.sp) },
@@ -377,7 +376,7 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if(userRole=="admin"){
+                    if (userRole == "admin" || userRole == "superAdmin") {
                         IconButton(onClick = { navController.navigate(screenRoute.HomeAdmin.route) }) {
                             Icon(
                                 imageVector = Icons.Filled.Home,
@@ -385,7 +384,7 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
                                 tint = white
                             )
                         }
-                    }else{
+                    } else {
                         IconButton(onClick = { navController.navigate(screenRoute.HomeAdmin.route) }) {
                             Icon(
                                 imageVector = Icons.Filled.Home,
@@ -483,7 +482,7 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
                             )
 
                         }
-                        if (userRole != "admin") {
+                        if (userRole == "user") {
                             IconButton(onClick = {
                                 navController.navigate(route = screenRoute.Notificaciones.route)
                             }) {
@@ -493,12 +492,12 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
                                     contentDescription = "notificaciones"
                                 )
                             }
+                        } else {
+                            //Text(text = "")
                         }
                     }
 
-                    if (userRole == "admin") {
-
-
+                    if (userRole == "admin" || userRole == "superAdmin") {
 
                         //Para agregar una peli
                         Button(
@@ -569,8 +568,10 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
                                                 )
                                                 IconButton(
                                                     onClick = {
-                                                        selectedMovieId = movie._id // Ahora 'movie.id' es un Int
-                                                        openAlertDialog.value = true},
+                                                        selectedMovieId =
+                                                            movie._id // Ahora 'movie.id' es un Int
+                                                        openAlertDialog.value = true
+                                                    },
                                                     modifier = Modifier
                                                         .align(Alignment.TopEnd)
                                                 ) {
@@ -672,15 +673,7 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
                         }
 
 
-
-
-                    }
-
-
-
-
-                    else {
-
+                    } else {
 
 
                         when (userDataState) {
@@ -750,23 +743,7 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
                         }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
                     }
-
-
-
 
 
                 }

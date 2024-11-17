@@ -1,7 +1,5 @@
 package com.ic.cinefile.screens
 
-import android.app.Activity
-import android.content.Intent
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
@@ -42,18 +40,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.ic.cinefile.Navigation.screenRoute
 import com.ic.cinefile.R
-
 import com.ic.cinefile.components.LoadingProgressDialog
 import com.ic.cinefile.data.accountRegisterData
 import com.ic.cinefile.ui.theme.black
 import com.ic.cinefile.ui.theme.white
-import com.ic.cinefile.viewModel.UiState
 import com.ic.cinefile.viewModel.UiState2
 import com.ic.cinefile.viewModel.userCreateViewModel
 

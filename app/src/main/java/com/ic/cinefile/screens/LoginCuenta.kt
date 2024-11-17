@@ -71,8 +71,7 @@ fun Login(viewModel: userCreateViewModel, navController: NavController) {
             //
         }
         is UiState.Success -> {
-            showMessage(context, "Token: ${(addScreenState.value as UiState.Success).token}")
-
+            //showMessage(context, "Token: ${(addScreenState.value as UiState.Success).token}")
             // Navegar a HomeAdmin cuando se obtiene un estado de éxito
             navController.navigate(screenRoute.HomeAdmin.route)
             viewModel.setStateToReady()

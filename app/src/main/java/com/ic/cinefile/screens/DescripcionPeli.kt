@@ -68,7 +68,6 @@ import com.ic.cinefile.viewModel.AverageRatingForUserState
 import com.ic.cinefile.viewModel.AverageRatingState
 import com.ic.cinefile.viewModel.MovieState
 import com.ic.cinefile.viewModel.UiState
-import com.ic.cinefile.viewModel.UserRatingState
 import com.ic.cinefile.viewModel.userCreateViewModel
 
 
@@ -79,7 +78,7 @@ fun descripcionPeli(
     navController: NavController,
     movieId: Int,
 
-) {
+    ) {
 
 
     var isBookmarked by remember { mutableStateOf(false) }
@@ -104,12 +103,15 @@ fun descripcionPeli(
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                 viewModel.setStateToReady()
             }
+
             UiState.Loading -> {
                 // Puedes agregar algún indicador de carga general aquí si es necesario
             }
+
             UiState.Ready -> {
                 //
             }
+
             is UiState.Success -> {
                 val token = (addScreenState.value as UiState.Success).token
                 viewModel.fetchUserData() // Llama a getUserData para obtener la información del usuario
@@ -173,7 +175,7 @@ fun descripcionPeli(
                 )
                 //Back
                 IconButton(
-                    onClick = {navController.popBackStack() },
+                    onClick = { navController.popBackStack() },
                     colors = IconButtonDefaults.iconButtonColors(black)
                 ) {
                     Icon(
@@ -207,33 +209,21 @@ fun descripcionPeli(
                                     text = movie.title ?: "Sin título", // Evitar null
                                     fontSize = 28.sp,
                                     color = Color.White,
-                                    modifier = Modifier.fillMaxWidth(0.78f)
+                                    modifier = Modifier.fillMaxWidth(0.85f)
                                 )
                                 //guardado o no
-                                if(userRole == "admin"){
-                                    Row {
-                                        IconButton(
-                                            onClick = { openAlertDialog.value = true },
-                                            modifier = Modifier.align(Alignment.Top)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Delete,
-                                                contentDescription = null,
-                                                tint = dark_red
-                                            )
-                                        }
-                                        IconButton(
-                                            onClick = { navController.navigate(screenRoute.EditarPelicula.route)},
-                                            modifier = Modifier.align(Alignment.Top)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Edit,
-                                                contentDescription = null,
-                                                tint = white
-                                            )
-                                        }
+                                if (userRole == "admin" || userRole == "superAdmin") {
+                                    IconButton(
+                                        onClick = { openAlertDialog.value = true },
+                                        modifier = Modifier.align(Alignment.Top)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = dark_red
+                                        )
                                     }
-                                }else {
+                                } else {
                                     botonGuardar(
                                         onClick = {
                                             isBookmarked = !isBookmarked
@@ -261,7 +251,9 @@ fun descripcionPeli(
                                     tint = white
                                 )
                                 Text(
-                                    text = formatDuration(movie.duration ?: 0), // Asegurarse de manejar valores nulos
+                                    text = formatDuration(
+                                        movie.duration ?: 0
+                                    ), // Asegurarse de manejar valores nulos
                                     color = white,
                                     fontSize = 16.sp,
                                     modifier = Modifier
@@ -273,11 +265,13 @@ fun descripcionPeli(
                                     tint = light_yellow
                                 )
                                 Text(
-                                    text = when(val state = averageRating) {
+                                    text = when (val state = averageRating) {
                                         is AverageRatingState.Success -> {
-                                            state.averageRating?.takeIf { it != 0.0 }?.let { String.format("%.2f", it) } ?: "0.0"
+                                            state.averageRating?.takeIf { it != 0.0 }
+                                                ?.let { String.format("%.2f", it) } ?: "0.0"
 
                                         }
+
                                         else -> "0.0"
                                     },
                                     color = white,
@@ -291,7 +285,8 @@ fun descripcionPeli(
                                     tint = white
                                 )
                                 Text(
-                                    text = movie.releaseDate ?: "", // Asegurarse de manejar valores nulos
+                                    text = movie.releaseDate
+                                        ?: "", // Asegurarse de manejar valores nulos
                                     color = white,
                                     fontSize = 16.sp,
                                     modifier = Modifier
@@ -330,7 +325,7 @@ fun descripcionPeli(
                         item {
                             Spacer(modifier = Modifier.height(15.dp))
                             Text(
-                                text = movie.description ?:"",
+                                text = movie.description ?: "",
                                 lineHeight = 20.sp,
                                 color = Color.White
                             )
@@ -360,13 +355,11 @@ fun descripcionPeli(
                                 rating = when (val state = averageRatingForUser) {
                                     is AverageRatingForUserState.Success -> state.rating
                                     else -> 0
-                                }
-                                , // Mostrar la calificación del usuario
+                                }, // Mostrar la calificación del usuario
                                 onRatingChanged = { rating ->
                                     viewModel.rateMovie(movieId, rating.toDouble())
                                 }
                             )
-
 
 
                         }
