@@ -144,4 +144,50 @@ controller.logout = async (req, res) => {
   }
 };
 
+controller.checkEmailExists = async (req, res) => {
+  try {
+    // Parsear y sanitizar el cuerpo de la solicitud
+    const { email } = await parseRequestBody(req);
+
+    if (!email) {
+      return sendJsonResponse(res, 400, { error: "El campo 'email' es requerido." });
+    }
+
+    // Verificar si existe un usuario con el email
+    const user = await User.findOne({ email });
+
+    if (user) {
+      return sendJsonResponse(res, 200, { exists: true, message: "El correo ya está registrado." });
+    } else {
+      return sendJsonResponse(res, 200, { exists: false, message: "El correo no está registrado." });
+    }
+  } catch (error) {
+    sendJsonResponse(res, 500, { error: error.message });
+  }
+};
+
+controller.checkUsernameExists = async (req, res) => {
+  try {
+    // Parsear y sanitizar el cuerpo de la solicitud
+    const { username } = await parseRequestBody(req);
+
+    if (!username) {
+      return sendJsonResponse(res, 400, { error: "El campo 'username' es requerido." });
+    }
+
+    // Verificar si existe un usuario con el nombre de usuario
+    const user = await User.findOne({ username });
+
+    if (user) {
+      return sendJsonResponse(res, 200, { exists: true, message: "El nombre de usuario ya está registrado." });
+    } else {
+      return sendJsonResponse(res, 200, { exists: false, message: "El nombre de usuario no está registrado." });
+    }
+  } catch (error) {
+    sendJsonResponse(res, 500, { error: error.message });
+  }
+};
+
+
 module.exports = controller;
+

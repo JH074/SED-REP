@@ -26,13 +26,16 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -45,6 +48,7 @@ import com.ic.cinefile.Navigation.screenRoute
 import com.ic.cinefile.ui.theme.black
 import com.ic.cinefile.ui.theme.dark_blue
 import com.ic.cinefile.ui.theme.white
+import com.ic.cinefile.viewModel.CheckUsernameState
 import com.ic.cinefile.viewModel.userCreateViewModel
 import java.text.ParseException
 import java.text.SimpleDateFormat
@@ -62,7 +66,39 @@ fun CrearPerfil(viewModel: userCreateViewModel, navController: NavController) {
     val accountData by viewModel.accountcreateAPIData
     var username by remember { mutableStateOf(accountData.username) }
     var year_nac by remember { mutableStateOf(accountData.year_nac) }
+    val checkUsernameState by viewModel.checkUsernameState.collectAsState()
+    var isUsernameValid by remember { mutableStateOf(false) }
+    var usernameError by remember { mutableStateOf("") }
 
+    // Verificar el nombre de usuario cuando cambia
+    LaunchedEffect(username) {
+        if (username.isNotEmpty()) {
+            viewModel.checkUsernameExists(username)
+        }
+    }
+
+    LaunchedEffect(checkUsernameState) {
+        when (checkUsernameState) {
+            is CheckUsernameState.Success -> {
+                val state = checkUsernameState as CheckUsernameState.Success
+                if (state.exists) {
+                    usernameError = "Este nombre de usuario ya existe. Por favor, elige otro."
+                    isUsernameValid = false
+                } else {
+                    usernameError = ""
+                    isUsernameValid = true
+                }
+            }
+            is CheckUsernameState.Error -> {
+                usernameError = "Error al verificar el nombre de usuario."
+                isUsernameValid = false
+            }
+            else -> {
+                usernameError = ""
+                isUsernameValid = false
+            }
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -90,7 +126,7 @@ fun CrearPerfil(viewModel: userCreateViewModel, navController: NavController) {
             maxLines = 1, // Limitar a una línea para evitar saltos de línea
             onValueChange = {
 
-                if (username.length <= 15) { // Limitar a 15 caracteres
+                if (username.length <= 30) { // Limitar a 15 caracteres
                     username = it
                 }
             },
@@ -115,10 +151,20 @@ fun CrearPerfil(viewModel: userCreateViewModel, navController: NavController) {
                         fontWeight = FontWeight.Normal,
                     )
                 )
-            }
-        )
+            },
+            isError = usernameError.isNotEmpty()
 
+        )
+        if (usernameError.isNotEmpty()) {
+            Text(
+                text = usernameError,
+                color = Color.Red,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
         Spacer(modifier = Modifier.height(40.dp))
+
 
         Text(
             text = "Fecha de nacimiento",
@@ -194,7 +240,7 @@ fun CrearPerfil(viewModel: userCreateViewModel, navController: NavController) {
 
         Button(
             onClick = {
-                if (username.isNotEmpty() && year_nac != "DD/MM/YYYY") {
+                if (username.isNotEmpty() && year_nac != "DD/MM/YYYY" && isUsernameValid) {
                     try {
                         val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                         val birthDate =
@@ -221,6 +267,8 @@ fun CrearPerfil(viewModel: userCreateViewModel, navController: NavController) {
                     } catch (e: ParseException) {
                         Toast.makeText(context, "Fecha inválida", Toast.LENGTH_SHORT).show()
                     }
+                } else if (!isUsernameValid){
+                    Toast.makeText(context, "Intenta otro nombre de usuario", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(context, "Completa todos los campos", Toast.LENGTH_SHORT).show()
                 }
@@ -229,7 +277,8 @@ fun CrearPerfil(viewModel: userCreateViewModel, navController: NavController) {
             colors = ButtonDefaults.buttonColors(
                 containerColor = white,
                 contentColor = black
-            ),
+            )
+
         ) {
             Text(
                 text = "Siguiente",

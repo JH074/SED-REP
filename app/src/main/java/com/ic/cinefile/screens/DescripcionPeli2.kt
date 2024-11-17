@@ -79,7 +79,7 @@ fun descripcionPeli2(
     viewModel: userCreateViewModel,
     navController: NavController,
     movieId: Int,
-    ) {
+) {
 
     var isBookmarked by remember { mutableStateOf(false) }
 
@@ -106,6 +106,7 @@ fun descripcionPeli2(
             UiState.Ready -> {
                 //
             }
+
             is UiState.Success -> {
                 val token = (addScreenState.value as UiState.Success).token
                 viewModel.fetchUserData() // Llama a getUserData para obtener la información del usuario
@@ -170,7 +171,7 @@ fun descripcionPeli2(
                             .fillMaxHeight(0.7f)
                             .fillMaxWidth()
                     )
-                }else {
+                } else {
                     // Muestra un marcador de posición si no se puede decodificar el Base64
                     Box(
                         modifier = Modifier
@@ -221,32 +222,22 @@ fun descripcionPeli2(
                                     text = movie.title ?: "Sin título", // Evitar null
                                     fontSize = 28.sp,
                                     color = Color.White,
-                                    modifier = Modifier.fillMaxWidth(0.78f)
+                                    modifier = Modifier.fillMaxWidth(0.85f)
                                 )
                                 //guardado o no
                                 if (userRole == "admin" || userRole == "superAdmin") {
-                                    Row {
-                                        IconButton(
-                                            onClick = { openAlertDialog.value = true },
-                                            modifier = Modifier.align(Alignment.Top)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Delete,
-                                                contentDescription = null,
-                                                tint = dark_red
-                                            )
-                                        }
-                                        IconButton(
-                                            onClick = { navController.navigate(screenRoute.EditarPelicula.route+ "/${movie.id}") },
-                                            modifier = Modifier.align(Alignment.Top)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Edit,
-                                                contentDescription = null,
-                                                tint = white
-                                            )
-                                        }
+
+                                    IconButton(
+                                        onClick = { navController.navigate(screenRoute.EditarPelicula.route + "/${movie.id}") },
+                                        modifier = Modifier.align(Alignment.Top)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Edit,
+                                            contentDescription = null,
+                                            tint = white
+                                        )
                                     }
+
                                 } else {
                                     botonGuardar(
                                         onClick = {

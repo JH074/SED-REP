@@ -46,6 +46,7 @@ controller.movieData = async (req, res) => {
     }
 };
 
+
 controller.searchActorsByName = async (req, res) => {
   try {
     // Obtener el nombre del actor desde los parámetros de la URL

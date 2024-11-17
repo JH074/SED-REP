@@ -61,6 +61,7 @@ import com.ic.cinefile.screens.base64ToBitmap
 import com.ic.cinefile.ui.theme.black
 import com.ic.cinefile.ui.theme.dark_red
 import com.ic.cinefile.ui.theme.white
+import com.ic.cinefile.viewModel.EditMovieState
 import com.ic.cinefile.viewModel.GetMovieCreateState
 import com.ic.cinefile.viewModel.userCreateViewModel
 
@@ -77,6 +78,8 @@ fun editarPelicula(
     val getmovieCreateState by viewModel.getMovieCreateState.collectAsState()
     val context = LocalContext.current
     val createMovie by viewModel.createMovie
+    val editMovieState by viewModel.editMovieState.collectAsState()
+
 
     var coverPhoto by remember { mutableStateOf(createMovie.coverPhoto) }
     var title by remember { mutableStateOf(createMovie.title) }
@@ -84,6 +87,32 @@ fun editarPelicula(
 
     LaunchedEffect(movieId) {
         viewModel.getMovieCreateById(movieId)
+    }
+
+    LaunchedEffect(editMovieState) {
+        when (editMovieState) {
+            is EditMovieState.Loading -> {
+                Toast.makeText(context, "Actualizando película...", Toast.LENGTH_SHORT).show()
+            }
+            is EditMovieState.Success -> {
+                Toast.makeText(
+                    context,
+                    (editMovieState as EditMovieState.Success).message,
+                    Toast.LENGTH_SHORT
+                ).show()
+                viewModel.resetEditMovieState() // Restablece el estado
+                navController.popBackStack() // Navegar hacia atrás al completar
+            }
+            is EditMovieState.Error -> {
+                Toast.makeText(
+                    context,
+                    (editMovieState as EditMovieState.Error).message,
+                    Toast.LENGTH_SHORT
+                ).show()
+                viewModel.resetEditMovieState() // Restablece el estado incluso en caso de error
+            }
+            else -> Unit
+        }
     }
 
     Scaffold(
@@ -157,9 +186,7 @@ fun editarPelicula(
                             resultUri?.let { uri ->
                                 val base64Image = uriToBase64(context, uri)
                                 if (base64Image != null) {
-                                    val encodedPhoto = "data:image/jpeg;base64,$base64Image"
-                                    coverPhoto = encodedPhoto // Actualizar imagen en la vista
-                                    viewModel.setBase64CoverPhoto(encodedPhoto) // Guardar para backend
+                                    coverPhoto = "data:image/jpeg;base64,$base64Image"
                                 } else {
                                     Toast.makeText(
                                         context,
@@ -287,20 +314,20 @@ fun editarPelicula(
                     // Botón para actualizar la película
                     Button(
                         onClick = {
-
-                            val movieData = editMovieData(
-                                title = title,
-                                synopsis = sypnosis,
-                                coverPhoto = viewModel.base64CoverPhoto.value
-                            )
-                            // Llamar al método en tu ViewModel para actualizar la película
-                            viewModel.editMovie(movie._id,movieData)
-                            Toast.makeText(
-                                context,
-                                "Actualizado con éxito",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            navController.popBackStack()
+                            if (title.isNotBlank() && sypnosis.isNotBlank()) {
+                                val movieData = editMovieData(
+                                    title = title,
+                                    synopsis = sypnosis,
+                                    coverPhoto = coverPhoto
+                                )
+                                viewModel.editMovie(movie._id, movieData)
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Todos los campos son obligatorios",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
                         },
                         modifier = Modifier.width(300.dp),
                         colors = ButtonDefaults.buttonColors(
