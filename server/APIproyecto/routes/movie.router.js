@@ -20,6 +20,10 @@ const routes = {
   if (!(await authenticate(req, res, ['user', 'admin', 'superAdmin']))) return;
   return await commentController.editComment(req, res);
   },
+  'PUT /editMovie/moviesId/:id': async (req, res) => {
+    if (!(await authenticate(req, res, ['admin', 'superAdmin']))) return;
+    return await movieController.editMovie(req, res);
+  },
   'DELETE /comments/:id': async (req, res) => {
     if (!(await authenticate(req, res, ['superAdmin']))) return;
     return await commentController.deleteComment(req, res);

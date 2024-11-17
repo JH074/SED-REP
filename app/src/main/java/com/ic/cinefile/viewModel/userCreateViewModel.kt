@@ -1434,6 +1434,12 @@ class userCreateViewModel(
         }
     }
 
+    private val _base64CoverPhoto = mutableStateOf<String?>(null)
+    val base64CoverPhoto: State<String?> = _base64CoverPhoto
+
+    fun setBase64CoverPhoto(base64Image: String) {
+        _base64CoverPhoto.value = base64Image
+    }
 
 }
 
