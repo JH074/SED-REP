@@ -191,7 +191,11 @@ class userCreateViewModel(
     private val _deleteReplyState = MutableStateFlow<DeleteReplyState>(DeleteReplyState.Ready)
     val deleteReplyState: StateFlow<DeleteReplyState> = _deleteReplyState
 
+    private val _checkUsernameState = MutableStateFlow<CheckUsernameState>(CheckUsernameState.Ready)
+    val checkUsernameState: StateFlow<CheckUsernameState> = _checkUsernameState
 
+    private val _checkEmailState = MutableStateFlow<CheckEmailState>(CheckEmailState.Ready)
+    val checkEmailState: StateFlow<CheckEmailState> = _checkEmailState
 
     //ADMIN
     private val _createMovie = mutableStateOf(createMovieData())
@@ -356,6 +360,48 @@ class userCreateViewModel(
             }
         }
     }
+
+    fun checkUsernameExists(username: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _checkUsernameState.value = CheckUsernameState.Loading
+            try {
+                val response = apiServer.methods.checkUsernameExists(mapOf("username" to username))
+                if (response.isSuccessful) {
+                    response.body()?.let { body ->
+                        _checkUsernameState.value = CheckUsernameState.Success(body.exists, body.message)
+                    } ?: run {
+                        _checkUsernameState.value = CheckUsernameState.Error("Error: Respuesta vacía")
+                    }
+                } else {
+                    _checkUsernameState.value = CheckUsernameState.Error("Error: ${response.errorBody()?.string()}")
+                }
+            } catch (e: Exception) {
+                _checkUsernameState.value = CheckUsernameState.Error("Error inesperado: ${e.message}")
+            }
+        }
+    }
+
+
+    fun checkEmailExists(email: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _checkEmailState.value = CheckEmailState.Loading
+            try {
+                val response = apiServer.methods.checkEmailExists(mapOf("email" to email))
+                if (response.isSuccessful) {
+                    response.body()?.let { body ->
+                        _checkEmailState.value = CheckEmailState.Success(body.exists, body.message)
+                    } ?: run {
+                        _checkEmailState.value = CheckEmailState.Error("Error: Respuesta vacía")
+                    }
+                } else {
+                    _checkEmailState.value = CheckEmailState.Error("Error: ${response.errorBody()?.string()}")
+                }
+            } catch (e: Exception) {
+                _checkEmailState.value = CheckEmailState.Error("Error inesperado: ${e.message}")
+            }
+        }
+    }
+
 
     fun getUserRole(): String {
         return userRole ?:""
@@ -1305,6 +1351,9 @@ class userCreateViewModel(
         }
     }
 
+    fun resetEditMovieState() {
+        _editMovieState.value = EditMovieState.Ready
+    }
 
 
     fun getMovieCreate() {
@@ -1692,4 +1741,20 @@ sealed class GetMovieCreateState {
 
     data class Success(val data: MovieAdmin) : GetMovieCreateState()
     data class Error(val msg: String) : GetMovieCreateState()
+}
+
+
+
+sealed class CheckUsernameState {
+    object Loading : CheckUsernameState()
+    object Ready : CheckUsernameState()
+    data class Success(val exists: Boolean, val message: String) : CheckUsernameState()
+    data class Error(val message: String) : CheckUsernameState()
+}
+
+sealed class CheckEmailState {
+    object Loading : CheckEmailState()
+    object Ready : CheckEmailState()
+    data class Success(val exists: Boolean, val message: String) : CheckEmailState()
+    data class Error(val message: String) : CheckEmailState()
 }
