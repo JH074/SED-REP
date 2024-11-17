@@ -49,6 +49,7 @@ fun CrearCuenta(viewModel: userCreateViewModel, navController: NavController) {
 
     var emailError by remember { mutableStateOf("") }
     var isEmailValid by remember { mutableStateOf(false) }
+
     LaunchedEffect(email) {
         if (isValidEmail(email)) {
             viewModel.checkEmailExists(email)
@@ -132,6 +133,7 @@ fun CrearCuenta(viewModel: userCreateViewModel, navController: NavController) {
                 keyboardType = KeyboardType.Email,
             ),
             singleLine = true,
+            maxLines = 1,
             isError = emailError.isNotEmpty()
 
         )
@@ -194,15 +196,14 @@ fun CrearCuenta(viewModel: userCreateViewModel, navController: NavController) {
 
         Button(
             onClick = {
-                val correo = email
-                val contrasena = password
-
-                if (correo.isEmpty() || contrasena.isEmpty()) {
+                if (email.isEmpty() || password.isEmpty()) {
                     Toast.makeText(context, "No dejes los campos vacíos", Toast.LENGTH_SHORT).show()
-                } else if (!isValidEmail(correo)) {
+                } else if (!isValidEmail(email)) {
                     Toast.makeText(context, "Formato de correo inválido", Toast.LENGTH_SHORT).show()
-                } else if (!isValidPassword(contrasena)) {
+                } else if (!isValidPassword(password)) {
                     Toast.makeText(context, "Contraseña no válida", Toast.LENGTH_SHORT).show()
+                } else if (!isEmailValid){
+                    Toast.makeText(context, "Intenta otro correo", Toast.LENGTH_SHORT).show()
                 } else {
                     viewModel.updateAccountData(accountData.copy(email = email, password = password))
                     navController.navigate(screenRoute.CrearPerfil.route)
@@ -212,8 +213,7 @@ fun CrearCuenta(viewModel: userCreateViewModel, navController: NavController) {
             colors = ButtonDefaults.buttonColors(
                 containerColor = white,
                 contentColor = black
-            ),
-            enabled = email.isNotEmpty() && isEmailValid && password.isNotEmpty() && isValidPassword(password)
+            )
 
         ) {
             Text(

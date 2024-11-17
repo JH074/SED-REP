@@ -95,7 +95,7 @@ fun contentGenero(viewModel: userCreateViewModel, navController: NavController) 
 //                            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
 //                            context.startActivity(intent)
 //                            (context as Activity).finish()
-
+                            navController.popBackStack()
 
                         }
                     ) {
@@ -184,7 +184,10 @@ fun contentGenero(viewModel: userCreateViewModel, navController: NavController) 
                 },
                 modifier = Modifier
                     .width(300.dp)
-                    .border(2.dp, buttonBorders.value["Prefiero no especificar"]!!), // Agregar borde blanco
+                    .border(
+                        2.dp,
+                        buttonBorders.value["Prefiero no especificar"]!!
+                    ), // Agregar borde blanco
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White,
                     contentColor = Color.Black
@@ -209,7 +212,11 @@ fun contentGenero(viewModel: userCreateViewModel, navController: NavController) 
                         navController.navigate(screenRoute.ElegirGeneros.route)
                     } else {
                         // Mostrar mensaje de validación usando un Toast
-                        Toast.makeText(context, "Por favor, selecciona un género", Toast.LENGTH_SHORT)
+                        Toast.makeText(
+                            context,
+                            "Por favor, selecciona un género",
+                            Toast.LENGTH_SHORT
+                        )
                             .show()
                     }
                 },

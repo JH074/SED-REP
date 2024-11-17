@@ -6,7 +6,6 @@ data class accountRegisterData(
     @SerializedName(value="_id")
     var id:String="",
 
-
     @SerializedName(value="username")
     var username:String="",
 

@@ -240,7 +240,7 @@ fun CrearPerfil(viewModel: userCreateViewModel, navController: NavController) {
 
         Button(
             onClick = {
-                if (username.isNotEmpty() && year_nac != "DD/MM/YYYY") {
+                if (username.isNotEmpty() && year_nac != "DD/MM/YYYY" && isUsernameValid) {
                     try {
                         val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                         val birthDate =
@@ -267,6 +267,8 @@ fun CrearPerfil(viewModel: userCreateViewModel, navController: NavController) {
                     } catch (e: ParseException) {
                         Toast.makeText(context, "Fecha inválida", Toast.LENGTH_SHORT).show()
                     }
+                } else if (!isUsernameValid){
+                    Toast.makeText(context, "Intenta otro nombre de usuario", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(context, "Completa todos los campos", Toast.LENGTH_SHORT).show()
                 }
@@ -275,8 +277,7 @@ fun CrearPerfil(viewModel: userCreateViewModel, navController: NavController) {
             colors = ButtonDefaults.buttonColors(
                 containerColor = white,
                 contentColor = black
-            ),
-            enabled = username.isNotEmpty() && year_nac != "DD/MM/YYYY" && isUsernameValid
+            )
 
         ) {
             Text(

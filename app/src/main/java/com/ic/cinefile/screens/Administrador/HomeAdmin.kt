@@ -327,7 +327,10 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
                 }, onClick = {
                     coroutineScope.launch {
                         drawerState.close()
-                    }/*PARA IR A LAS POLITICAS DE PRIVACIDAD*/
+                    }
+                    navController.navigate(screenRoute.Configuraciones.route) {
+                        popUpTo(0)
+                    }
                 }, colors = NavigationDrawerItemDefaults.colors(
                     unselectedContainerColor = Color.Transparent,
                     selectedContainerColor = Color.Transparent
