@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +43,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -52,12 +56,14 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.ic.cinefile.data.createMovieData
+import com.ic.cinefile.data.editMovieData
+import com.ic.cinefile.screens.base64ToBitmap
 import com.ic.cinefile.ui.theme.black
 import com.ic.cinefile.ui.theme.dark_red
 import com.ic.cinefile.ui.theme.white
 import com.ic.cinefile.viewModel.GetMovieCreateState
-import com.ic.cinefile.viewModel.UiState
 import com.ic.cinefile.viewModel.userCreateViewModel
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -109,13 +115,6 @@ fun editarPelicula(
         }
     ) { innerPadding ->
 
-        val foto = rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.PickVisualMedia(),
-            onResult = { resultUri: Uri? ->
-                coverPhoto = resultUri?.toString() ?: ""
-            }
-        )
-
         Column(
             modifier = Modifier
                 .padding(innerPadding)
@@ -145,28 +144,61 @@ fun editarPelicula(
 
                     val movie = (getmovieCreateState as GetMovieCreateState.Success).data
 
-                    //La imagen
+                    // Inicializar valores desde los datos del servidor
+                    LaunchedEffect(Unit) {
+                        coverPhoto = movie.coverPhoto // Base64 inicial
+                        title = movie.title ?: ""
+                        sypnosis = movie.synopsis ?: ""
+                    }
+
+                    val fotoLauncher = rememberLauncherForActivityResult(
+                        contract = ActivityResultContracts.PickVisualMedia(),
+                        onResult = { resultUri: Uri? ->
+                            resultUri?.let { uri ->
+                                val base64Image = uriToBase64(context, uri)
+                                if (base64Image != null) {
+                                    val encodedPhoto = "data:image/jpeg;base64,$base64Image"
+                                    coverPhoto = encodedPhoto // Actualizar imagen en la vista
+                                    viewModel.setBase64CoverPhoto(encodedPhoto) // Guardar para backend
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "Error al procesar la imagen",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+                        }
+                    )
+
+                    // Mostrar la imagen
                     Box(
                         modifier = Modifier.padding(innerPadding),
                         contentAlignment = Alignment.Center
                     ) {
-                        val coverPhotoToShow = if (coverPhoto.isNullOrEmpty()) {
-                            movie.coverPhoto
+                        if (coverPhoto?.startsWith("data:image/") == true) {
+                            // Si es Base64, mostrar como imagen
+                            val bitmap = base64ToBitmap(coverPhoto!!)
+                            if (bitmap != null) {
+                                Image(
+                                    painter = BitmapPainter(bitmap.asImageBitmap()),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(150.dp, 200.dp),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
                         } else {
                             AsyncImage(
-                                model = coverPhoto,
+                                model = coverPhoto, // URI u otro enlace
                                 contentDescription = null,
-                                modifier = Modifier.size(200.dp, 250.dp)
+                                modifier = Modifier.size(150.dp, 200.dp),
+                                contentScale = ContentScale.Crop
                             )
                         }
-                        AsyncImage(
-                            model = coverPhotoToShow,
-                            contentDescription = null,
-                            modifier = Modifier.size(200.dp, 250.dp)
-                        )
+
                         IconButton(
                             onClick = {
-                                foto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                                fotoLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                             },
                             modifier = Modifier.align(Alignment.BottomEnd),
                             colors = IconButtonDefaults.iconButtonColors(dark_red)
@@ -179,15 +211,10 @@ fun editarPelicula(
                         }
                     }
 
+
                     Spacer(modifier = Modifier.height(20.dp))
 
                     //El nombre de la peli
-                    var isTitleInitialized by remember { mutableStateOf(false) }
-
-                    if (!isTitleInitialized) {
-                        title = movie.title ?: "Sin título"
-                        isTitleInitialized = true
-                    }
 
                     TextField(
                         modifier = Modifier.width(300.dp),
@@ -216,18 +243,14 @@ fun editarPelicula(
                                 )
                             )
                         },
-                        maxLines = 1
+                        maxLines = 1,
+                        singleLine = true
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
 
                     //Para la descripción
-                    var isDescripcionInitialized by remember { mutableStateOf(false) }
 
-                    if (!isDescripcionInitialized) {
-                        sypnosis = movie.synopsis ?: "Sin description"
-                        isDescripcionInitialized = true
-                    }
                     TextField(
                         modifier = Modifier.width(300.dp),
                         value = sypnosis,
@@ -254,7 +277,9 @@ fun editarPelicula(
                                     fontWeight = FontWeight.Normal
                                 )
                             )
-                        }
+                        },
+                        maxLines = 1,
+                        singleLine = true
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
@@ -263,15 +288,13 @@ fun editarPelicula(
                     Button(
                         onClick = {
 
-                            val movieData = createMovieData(
+                            val movieData = editMovieData(
                                 title = title,
                                 synopsis = sypnosis,
-                                coverPhoto = if ((coverPhoto ?: "").startsWith("https://")) coverPhoto
-                                    ?: "" else "", // Verifica HTTPS en la URL
-
+                                coverPhoto = viewModel.base64CoverPhoto.value
                             )
                             // Llamar al método en tu ViewModel para actualizar la película
-                            //viewModel.updateMovie(movieData)
+                            viewModel.editMovie(movie._id,movieData)
                             Toast.makeText(
                                 context,
                                 "Actualizado con éxito",
@@ -304,3 +327,4 @@ fun editarPelicula(
         }
     }
 }
+

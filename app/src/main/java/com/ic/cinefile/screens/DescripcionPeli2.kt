@@ -237,7 +237,7 @@ fun descripcionPeli2(
                                             )
                                         }
                                         IconButton(
-                                            onClick = { navController.navigate(screenRoute.EditarPelicula.route) },
+                                            onClick = { navController.navigate(screenRoute.EditarPelicula.route+ "/${movie.id}") },
                                             modifier = Modifier.align(Alignment.Top)
                                         ) {
                                             Icon(
