@@ -33,6 +33,7 @@ import com.ic.cinefile.data.accountRegisterData
 import com.ic.cinefile.data.commentData
 import com.ic.cinefile.data.createMovieData
 import com.ic.cinefile.data.editCommentData
+import com.ic.cinefile.data.editMovieData
 import com.ic.cinefile.data.searchMoviesData
 import com.ic.cinefile.data.witchListData
 

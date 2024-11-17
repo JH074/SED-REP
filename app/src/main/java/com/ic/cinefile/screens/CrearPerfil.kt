@@ -137,6 +137,7 @@ fun CrearPerfil(viewModel: userCreateViewModel, navController: NavController) {
 
         val hidden: MutableState<Boolean> = remember { mutableStateOf(false) }
         val datePickerState = rememberDatePickerState(initialSelectedDateMillis = 1578096000000)
+
         Button(
             onClick = { hidden.value = !hidden.value },
             modifier = Modifier
@@ -187,58 +188,57 @@ fun CrearPerfil(viewModel: userCreateViewModel, navController: NavController) {
                     )
                 )
             }
+        }
 
-            Spacer(modifier = Modifier.height(100.dp))
+        Spacer(modifier = Modifier.height(100.dp))
 
-            Button(
-                onClick = {
-                    if (username.isNotEmpty() && year_nac != "DD/MM/YYYY") {
-                        try {
-                            val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                            val birthDate =
-                                sdf.parse(year_nac) ?: throw ParseException("Invalid date", 0)
-                            val age = Calendar.getInstance().let { current ->
-                                current[Calendar.YEAR] - Calendar.getInstance()
-                                    .apply { time = birthDate }[Calendar.YEAR]
-                            }
-                            if (age >= 12) {
-                                viewModel.updateAccountData(
-                                    accountData.copy(
-                                        username = username,
-                                        year_nac = year_nac
-                                    )
-                                )
-                                navController.navigate(screenRoute.Genero.route)
-                            } else {
-                                Toast.makeText(
-                                    context,
-                                    "Debes ser mayor de 12 años",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        } catch (e: ParseException) {
-                            Toast.makeText(context, "Fecha inválida", Toast.LENGTH_SHORT).show()
+        Button(
+            onClick = {
+                if (username.isNotEmpty() && year_nac != "DD/MM/YYYY") {
+                    try {
+                        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                        val birthDate =
+                            sdf.parse(year_nac) ?: throw ParseException("Invalid date", 0)
+                        val age = Calendar.getInstance().let { current ->
+                            current[Calendar.YEAR] - Calendar.getInstance()
+                                .apply { time = birthDate }[Calendar.YEAR]
                         }
-                    } else {
-                        Toast.makeText(context, "Completa todos los campos", Toast.LENGTH_SHORT)
-                            .show()
+                        if (age >= 12) {
+                            viewModel.updateAccountData(
+                                accountData.copy(
+                                    username = username,
+                                    year_nac = year_nac
+                                )
+                            )
+                            navController.navigate(screenRoute.Genero.route)
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Debes ser mayor de 12 años",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    } catch (e: ParseException) {
+                        Toast.makeText(context, "Fecha inválida", Toast.LENGTH_SHORT).show()
                     }
-                },
-                modifier = Modifier.width(300.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = white,
-                    contentColor = black
-                ),
-            ) {
-                Text(
-                    text = "Siguiente",
-                    style = TextStyle(
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        textAlign = TextAlign.Center,
-                    )
+                } else {
+                    Toast.makeText(context, "Completa todos los campos", Toast.LENGTH_SHORT).show()
+                }
+            },
+            modifier = Modifier.width(300.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = white,
+                contentColor = black
+            ),
+        ) {
+            Text(
+                text = "Siguiente",
+                style = TextStyle(
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
                 )
-            }
+            )
         }
     }
 }

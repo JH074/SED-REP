@@ -139,33 +139,31 @@ fun Resultadobuscador(viewModel: userCreateViewModel, navController: NavControll
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        if(userRole == "admin" || userRole == "superAdmin"){
+                            IconButton(onClick = { navController.navigate(screenRoute.HomeAdmin.route) }) {
+                                Icon(
+                                    imageVector = Icons.Filled.Home,
+                                    contentDescription = "Home",
+                                    tint = white
+                                )
+                            }
+                        }else{
+                            IconButton(onClick = { navController.navigate(screenRoute.HomeAdmin.route) }) {
+                                Icon(
+                                    imageVector = Icons.Filled.Home,
+                                    contentDescription = "Home",
+                                    tint = white
+                                )
+                            }
+                            IconButton(onClick = { navController.navigate(screenRoute.PerfilAnuncios.route) }) {
+                                Icon(
+                                    imageVector = Icons.Filled.Person,
+                                    contentDescription = "User",
+                                    tint = white
+                                )
+                            }
 
-                    }
-
-                    if(userRole=="admin"){
-                        IconButton(onClick = { navController.navigate(screenRoute.HomeAdmin.route) }) {
-                            Icon(
-                                imageVector = Icons.Filled.Home,
-                                contentDescription = "Home",
-                                tint = white
-                            )
                         }
-                    }else{
-                        IconButton(onClick = { navController.navigate(screenRoute.HomeAdmin.route) }) {
-                            Icon(
-                                imageVector = Icons.Filled.Home,
-                                contentDescription = "Home",
-                                tint = white
-                            )
-                        }
-                        IconButton(onClick = { navController.navigate(screenRoute.PerfilAnuncios.route) }) {
-                            Icon(
-                                imageVector = Icons.Filled.Person,
-                                contentDescription = "User",
-                                tint = white
-                            )
-                        }
-
                     }
                 }
             )
@@ -677,7 +675,7 @@ fun Peli(
                     fontSize = 14.sp
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                if (userRole == "admin") {
+                if (userRole == "admin" || userRole == "superAdmin") {
                     IconButton(
                         onClick = { /*ELIMINAR PELI*/ },
                         modifier = Modifier.align(Alignment.Top)
