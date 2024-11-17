@@ -577,15 +577,16 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
                                                         painter = BitmapPainter(bitmap.asImageBitmap()),
                                                         contentDescription = "Imagen de la película",
                                                         modifier = Modifier
-                                                            .fillMaxSize()
-                                                            .clip(RoundedCornerShape(8.dp)),
+                                                            .height(200.dp)
+                                                            .width(150.dp),
                                                         contentScale = ContentScale.Crop // Ajustar la imagen al contenedor
                                                     )
                                                 } else {
                                                     // Muestra un marcador de posición si el bitmap no se puede decodificar
                                                     Box(
                                                         modifier = Modifier
-                                                            .fillMaxSize()
+                                                            .height(200.dp)
+                                                            .width(150.dp)
                                                             .background(Color.Gray),
                                                         contentAlignment = Alignment.Center
                                                     ) {

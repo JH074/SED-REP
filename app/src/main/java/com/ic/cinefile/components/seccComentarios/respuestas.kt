@@ -103,9 +103,6 @@ fun respuestas(
                 IconButton(
                     onClick = { /*ELIMINAR LA COMENTARIO*/
 
-
-
-
                     },
                     modifier = Modifier.align(Alignment.CenterVertically)
                 ) {
