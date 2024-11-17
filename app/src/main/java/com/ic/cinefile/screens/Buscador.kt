@@ -81,7 +81,7 @@ fun Buscador(viewModel: userCreateViewModel, navController: NavController) {
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    var searchHistory by remember { mutableStateOf(listOf<String>()) }
+    val userRole = viewModel.getUserRole()
 
     // Validación de la entrada
     val sanitizedBuscador = buscador.filter { it.isLetterOrDigit() || it.isWhitespace() }.take(50)
@@ -215,26 +215,30 @@ fun Buscador(viewModel: userCreateViewModel, navController: NavController) {
                             horizontalArrangement = Arrangement.SpaceEvenly,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            IconButton(onClick = {
+                            if(userRole == "admin" || userRole == "superAdmin"){
+                                IconButton(onClick = { navController.navigate(screenRoute.HomeAdmin.route) }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Home,
+                                        contentDescription = "Home",
+                                        tint = white
+                                    )
+                                }
+                            }else{
+                                IconButton(onClick = { navController.navigate(screenRoute.HomeAdmin.route) }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Home,
+                                        contentDescription = "Home",
+                                        tint = white
+                                    )
+                                }
+                                IconButton(onClick = { navController.navigate(screenRoute.PerfilAnuncios.route) }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Person,
+                                        contentDescription = "User",
+                                        tint = white
+                                    )
+                                }
 
-                                navController.navigate(screenRoute.HomeAdmin.route)
-
-
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Filled.Home,
-                                    contentDescription = "Home",
-                                    tint = Color.White
-                                )
-                            }
-                            IconButton(onClick ={
-                                navController.navigate(screenRoute.PerfilAnuncios.route)
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Filled.Person,
-                                    contentDescription = "Person",
-                                    tint = Color.White
-                                )
                             }
                         }
                     }

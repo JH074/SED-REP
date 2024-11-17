@@ -398,15 +398,12 @@ fun AgregarPeliAdmin(
                 value = buscador,
                 onValueChange = { newBuscador ->
                     // Valida que el texto ingresado cumpla con los criterios de seguridad
-                    if (newBuscador.length <= 50 && newBuscador.matches(validActorNameRegex)) {
+                    if (newBuscador.length <= 50 && (newBuscador.isEmpty() || newBuscador.matches(validActorNameRegex))) {
                         buscador = newBuscador
-
-                        // Cancelar cualquier búsqueda en curso
-                        searchJob?.cancel()
 
                         // Debouncing: espera 500ms antes de realizar la búsqueda
                         searchJob = coroutineScope.launch {
-                            delay(500) // Espera de 500ms para evitar llamadas excesivas
+                            //delay(500) // Espera de 500ms para evitar llamadas excesivas
                             if (newBuscador.isNotEmpty()) {
                                 viewModel.searchActorsByName(newBuscador) // Llama al ViewModel solo si hay texto
                             } else {

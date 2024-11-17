@@ -98,7 +98,7 @@ fun respuestas(
                 )
             }
 
-            if(userRole=="admin"){
+            if(userRole=="superAdmin"){
                 //Eliminar comentario
                 IconButton(
                     onClick = { /*ELIMINAR LA COMENTARIO*/

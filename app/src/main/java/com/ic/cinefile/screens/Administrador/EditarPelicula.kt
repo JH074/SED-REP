@@ -34,6 +34,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,22 +55,30 @@ import com.ic.cinefile.data.createMovieData
 import com.ic.cinefile.ui.theme.black
 import com.ic.cinefile.ui.theme.dark_red
 import com.ic.cinefile.ui.theme.white
-import com.ic.cinefile.viewModel.MovieState
+import com.ic.cinefile.viewModel.GetMovieCreateState
+import com.ic.cinefile.viewModel.UiState
 import com.ic.cinefile.viewModel.userCreateViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun editarPelicula(
+    onClick: () -> Unit,
     viewModel: userCreateViewModel,
-    navController: NavController
+    navController: NavController,
+    movieId: Int
 ) {
 
-    val movieState by viewModel.movieState.collectAsState()
+    val getmovieCreateState by viewModel.getMovieCreateState.collectAsState()
     val context = LocalContext.current
     val createMovie by viewModel.createMovie
+
     var coverPhoto by remember { mutableStateOf(createMovie.coverPhoto) }
     var title by remember { mutableStateOf(createMovie.title) }
     var sypnosis by remember { mutableStateOf(createMovie.synopsis) }
+
+    LaunchedEffect(movieId) {
+        viewModel.getMovieCreateById(movieId)
+    }
 
     Scaffold(
         topBar = {
@@ -116,8 +125,8 @@ fun editarPelicula(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            when (movieState) {
-                is MovieState.Loading -> {
+            when (getmovieCreateState) {
+                is GetMovieCreateState.Loading -> {
                     // Mostrar un indicador de carga mientras se obtienen los datos
                     CircularProgressIndicator(
                         modifier = Modifier
@@ -126,15 +135,15 @@ fun editarPelicula(
                     )
                 }
 
-                is MovieState.Error -> {
+                is GetMovieCreateState.Error -> {
                     // Mostrar un mensaje de error en caso de fallo
-                    val message = (movieState as MovieState.Error).msg
+                    val message = (getmovieCreateState as GetMovieCreateState.Error).msg
                     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                 }
 
-                is MovieState.Success -> {
-                    // Mostrar la información de la película una vez cargada
-                    val movie = (movieState as MovieState.Success).data
+                is GetMovieCreateState.Success -> {
+
+                    val movie = (getmovieCreateState as GetMovieCreateState.Success).data
 
                     //La imagen
                     Box(
@@ -142,7 +151,7 @@ fun editarPelicula(
                         contentAlignment = Alignment.Center
                     ) {
                         val coverPhotoToShow = if (coverPhoto.isNullOrEmpty()) {
-                            movie.posterUrl
+                            movie.coverPhoto
                         } else {
                             AsyncImage(
                                 model = coverPhoto,
@@ -216,7 +225,7 @@ fun editarPelicula(
                     var isDescripcionInitialized by remember { mutableStateOf(false) }
 
                     if (!isDescripcionInitialized) {
-                        sypnosis = movie.description ?: "Sin description"
+                        sypnosis = movie.synopsis ?: "Sin description"
                         isDescripcionInitialized = true
                     }
                     TextField(
