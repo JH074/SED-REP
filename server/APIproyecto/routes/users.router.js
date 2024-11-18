@@ -50,7 +50,7 @@ const routes = {
     return await movieController.deleteMovie(req, res);
   },
   'GET /user/admin/home/:id': async (req, res) => {
-    if (!(await authenticate(req, res, ['admin','superAdmin']))) return;
+    if (!(await authenticate(req, res, ['user','admin','superAdmin']))) return;
     return await movieController.getMovieByAdminId(req, res);
   },
   'GET /user/home/movies/actors/search/:actorName': async (req, res) => {
