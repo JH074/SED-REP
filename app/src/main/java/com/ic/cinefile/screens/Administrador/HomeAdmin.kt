@@ -171,7 +171,9 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
 
             is UiState.Success -> {
                 // Llama a getUserData para obtener la información del usuario
-                viewModel.setStateToReady()
+                if (addScreenState.value != UiState.Ready) {
+                    viewModel.setStateToReady()
+                }
 
             }
         }
@@ -709,6 +711,112 @@ fun HomeAdmin(viewModel: userCreateViewModel, navController: NavController) {
 
 
                     } else {
+
+                        //PELICULAS CREADAS POR ADMINISTRADOR
+                        when (getMovieCreateState) {
+                            is GetMovieCreate.Success -> {
+                                val movies =
+                                    (getMovieCreateState as GetMovieCreate.Success).data.data
+                                Column {
+                                    Text(
+                                        text = "Peliculas creadas por adminsitrador",
+                                        style = TextStyle(
+                                            color = Color.White,
+                                            textAlign = TextAlign.Start,
+                                            fontFamily = montserratFamily,
+                                            fontWeight = FontWeight.Medium,
+                                            fontSize = 20.sp
+                                        ),
+                                        modifier = Modifier.padding(8.dp)
+                                    )
+
+                                    LazyRow {
+                                        items(movies.size) { index ->
+                                            val movie = movies[index]
+                                            val bitmap = base64ToBitmap(
+                                                movie.coverPhoto ?: ""
+                                            ) // Convierte Base64 a Bitmap
+
+                                            Box(
+                                                modifier = Modifier
+                                                    .padding(4.dp)
+                                                    .clickable {
+                                                        //   navController.navigate(route = screenRoute.descripcionPeli2.route + "/${movie.id}")
+                                                        navController.navigate(route = screenRoute.descripcionPeli2.route + "/${movie.id}")
+
+                                                        // Aquí navegas a la pantalla de descripción de la película
+                                                    }
+                                            )
+                                            {
+                                                // Agrega el prefijo si falta en la cadena Base64
+                                                if (bitmap != null) {
+                                                    // Usa BitmapPainter para renderizar el Bitmap
+                                                    Image(
+                                                        painter = BitmapPainter(bitmap.asImageBitmap()),
+                                                        contentDescription = "Imagen de la película",
+                                                        modifier = Modifier
+                                                            .height(200.dp)
+                                                            .width(150.dp),
+                                                        contentScale = ContentScale.Crop // Ajustar la imagen al contenedor
+                                                    )
+                                                } else {
+                                                    // Muestra un marcador de posición si el bitmap no se puede decodificar
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .height(200.dp)
+                                                            .width(150.dp)
+                                                            .background(Color.Gray),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text(
+                                                            text = "Sin imagen",
+                                                            color = Color.White
+                                                        )
+                                                    }
+                                                }
+                                                if(userRole != "user"){
+                                                    IconButton(
+                                                        onClick = {
+
+                                                            selectedMovieId =
+                                                                movie._id // Ahora 'movie.id' es un Int
+                                                            openAlertDialog.value = true
+                                                        },
+
+                                                        modifier = Modifier
+                                                            .align(Alignment.TopEnd)
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Delete,
+                                                            contentDescription = null,
+                                                            tint = dark_red
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            is GetMovieCreate.Loading -> {
+                                // Aquí puedes mostrar un diálogo de carga o un indicador de progreso
+                                LoadingProgressDialog()
+                            }
+
+                            is GetMovieCreate.Error -> {
+                                // Aquí puedes manejar el estado de error
+                                Text(
+                                    text = "Error: ${(getMovieCreateState as GetMovieCreate.Error).errorMessage}",
+                                    color = Color.Red,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+
+                            is GetMovieCreate.Ready -> {
+                                // Aquí puedes manejar el estado de preparación inicial si es necesario
+                            }
+                        }
 
                         when (userDataState) {
                             is UserDataState.Success -> {
