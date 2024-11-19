@@ -381,7 +381,6 @@ controller.getMovieAverageRating = async (req, res) => {
 
     // Calcula el promedio de las calificaciones
     const averageRating = latestRatings.reduce((sum, rating) => sum + rating, 0) / latestRatings.length;
-    console.log(`Average rating calculated: ${averageRating}`);
 
     // Devuelve solo el promedio de calificación
     return sendJsonResponse(res, 200, { averageRating });
@@ -411,7 +410,6 @@ controller.rateMovie = async (req, res) => {
 
     // Verificar si el usuario ya ha calificado esta película
     const existingRating = user.ratings.find(r => r.movieId === movieId);
-    console.log('Calificación existente:', existingRating);
 
     // Actualizar o agregar la calificación
     if (existingRating) {
@@ -422,7 +420,6 @@ controller.rateMovie = async (req, res) => {
 
     // Guardar los cambios en el usuario
     await user.save();
-    console.log('Todas las calificaciones del usuario:', user.ratings);
 
     // Responder con un mensaje de éxito
     sendJsonResponse(res, 200, { message: 'Calificación guardada correctamente' });
@@ -609,7 +606,6 @@ controller.getAverageRatingForMovie = async (req, res) => {
     if (averageRating === null) {
       return sendJsonResponse(res, 404, { message: 'No hay calificaciones para esta película' });
     }
-    console.log(`Average rating calculated: ${averageRating}`);
 
     // Enviamos solo el promedio de calificación en la respuesta
     return sendJsonResponse(res, 200, { averageRating });

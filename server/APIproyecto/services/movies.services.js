@@ -1,9 +1,8 @@
 
 const axios = require("axios");
 
-const BASE_URL_API="https://api.themoviedb.org/3/"
+const { BASE_URL, API_KEY } = require('./sA/apiConfig');
 
-const API_KEY="376635a2a15525fb5b00a5b6ac0f2861"
 
 const User = require('../models/account.model');
 
@@ -31,7 +30,7 @@ const genreMap = {
 const getMovies=async()=>{
 
     try {
-        const response = await axios.get(`${BASE_URL_API}discover/movie?api_key=${API_KEY}&language=es-MX`);
+        const response = await axios.get(`${BASE_URL}discover/movie?api_key=${API_KEY}&language=es-MX`);
         return response.data;
 
     } catch (error) {
@@ -458,7 +457,6 @@ const getRatedMovies = async (userId) => {
       movie.averageRating = averageRating;
     }
 
-    console.log('Películas calificadas por el usuario:', ratedMoviesArray);
 
     return ratedMoviesArray;
   } catch (error) {
@@ -611,22 +609,16 @@ const getRatedMovies = async (userId) => {
       // Asegurémonos de que movieId es una cadena
       movieId = movieId.toString();
       
-      console.log(`User ID: ${userId}`);
-      console.log(`Movie ID: ${movieId}`);
-      console.log('User Ratings:', user.ratings);
-  
+      
       const ratingsForMovie = user.ratings
         .filter(rating => rating.movieId.toString() === movieId);
   
-      console.log('Filtered Ratings for Movie:', ratingsForMovie);
   
       if (ratingsForMovie.length > 0) {
         const sortedRatings = ratingsForMovie.sort((a, b) => {
-          console.log(`Comparing ${a.timestamp} and ${b.timestamp}`);
           return new Date(b.timestamp) - new Date(a.timestamp);
         });
         
-        console.log('Sorted Ratings:', sortedRatings);
   
         const userRatingObj = sortedRatings[0]; // Obtener la calificación más reciente
   
@@ -635,7 +627,6 @@ const getRatedMovies = async (userId) => {
           rating: userRatingObj.rating
         };
       } else {
-        console.log('No ratings found for the movie.');
         return null; // Si no hay calificaciones para la película
       }
     } catch (error) {
@@ -667,7 +658,6 @@ const getRatedMovies = async (userId) => {
   
       // Calcula el promedio de las calificaciones
       const averageRating = latestRatings.reduce((sum, rating) => sum + rating, 0) / latestRatings.length;
-      console.log(`Average rating calculated: ${averageRating}`);
 
       return averageRating;
     } catch (error) {
