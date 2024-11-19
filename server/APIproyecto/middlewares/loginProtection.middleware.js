@@ -9,7 +9,6 @@ const trackFailedLogin = (ip) => {
 
   failedLogins[ip].attempts += 1;
   failedLogins[ip].lastAttempt = Date.now();
-  console.log(`Failed login attempt from IP ${ip}: ${failedLogins[ip].attempts} attempts.`);
 
 };
 
@@ -24,7 +23,6 @@ const resetFailedLogins = (ip) => {
 
 const applyDelay = async (ip) => {
   const delayTime = getDelayTime(ip);
-  console.log(`Applying delay of ${delayTime} ms for IP ${ip}`);
 
   return new Promise((resolve) => setTimeout(resolve, delayTime));
 };
