@@ -5,7 +5,7 @@
 - 💖 Jennifer Arlette Hernández López 00162622, SEC 01
 - 💕 Diego Josue Dominguez Cortez     00081022, SEC 01
 
-##Descarga nuestar aplicacion en el siguiente link:
+## Descarga nuestar aplicacion en el siguiente link:
 https://www.mediafire.com/file/ac5kzyy9wukz2q2/app-debug.apk/file
 
 ## Cuenta con:
