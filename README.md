@@ -6,7 +6,7 @@
 - 💕 Diego Josue Dominguez Cortez     00081022, SEC 01
 
 ## Descarga nuestar aplicacion en el siguiente link:
-https://www.mediafire.com/file/ac5kzyy9wukz2q2/app-debug.apk/file
+https://www.mediafire.com/file/f0qkfy783c9blte/cineFile.apk/file
 
 ## Cuenta con:
  1. Un mínimo de 3 roles, dentro de los cuales debe estar un rol de superadministrador, administrador y usuario.
